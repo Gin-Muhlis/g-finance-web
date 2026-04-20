@@ -9,3 +9,26 @@
     @apply min-h-screen bg-background-base font-sans text-body text-text-primary antialiased;
   }
 }
+
+/* design-system motion.patterns.glow_pulse — landing ambient glows */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@layer utilities {
+  .animate-glow-pulse {
+    animation: glow-pulse 6s ease-in-out infinite alternate;
+  }
+
+  .duration-180 {
+    transition-duration: 180ms;
+  }
+}
