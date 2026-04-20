@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
-import { Wallet } from 'lucide-vue-next'
+import { Check, Wallet } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -131,15 +131,31 @@ async function onSubmit() {
             />
           </div>
 
-          <div class="flex items-center gap-2 pt-1">
-            <input
-              id="login-remember"
-              v-model="rememberMe"
-              type="checkbox"
-              class="h-4 w-4 rounded border-border-default bg-[rgba(255,255,255,0.05)] text-accent-primary focus:ring-2 focus:ring-accent-primary focus:ring-offset-0 focus:ring-offset-background-base"
-            />
-            <label for="login-remember" class="cursor-pointer text-[13px] text-text-secondary">
-              Ingat saya
+          <div class="flex items-center gap-3 pt-1">
+            <label
+              for="login-remember"
+              class="flex cursor-pointer select-none items-center gap-2"
+            >
+              <input
+                id="login-remember"
+                v-model="rememberMe"
+                type="checkbox"
+                class="peer sr-only"
+              />
+              <span
+                class="flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[5px] border-2 border-accent-primary bg-transparent transition-[box-shadow,background-color] peer-focus-visible:shadow-[0_0_0_3px_rgba(255,80,0,0.25)] peer-focus-visible:outline-none peer-checked:bg-accent-primary/15"
+                aria-hidden="true"
+              >
+                <Check
+                  v-show="rememberMe"
+                  :size="12"
+                  :stroke-width="2"
+                  class="text-accent-primary"
+                />
+              </span>
+              <span class="text-[13px] text-text-secondary">
+                Ingat saya
+              </span>
             </label>
           </div>
 

@@ -30,17 +30,17 @@ const navItems = [
   },
   {
     to: '/app/categories',
-    label: 'Kelola kategori',
+    label: 'kategori',
     icon: Tags,
   },
   {
     to: '/app/wallets',
-    label: 'Kelola wallet',
+    label: 'wallet',
     icon: Wallet,
   },
   {
     to: '/app/transactions',
-    label: 'Kelola transaksi',
+    label: 'transaksi',
     icon: ArrowLeftRight,
   },
   {
@@ -65,23 +65,31 @@ async function handleLogout() {
     class="relative min-h-[100dvh] overflow-hidden bg-background-base text-text-primary"
   >
     <div
-      class="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_15%_60%,#FF4500_0%,transparent_42%),radial-gradient(ellipse_at_85%_40%,#6A0DAD_0%,transparent_48%),#0A0A0A]"
+      class="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_90%_70%_at_10%_55%,rgba(255,69,0,0.55)_0%,transparent_52%),radial-gradient(ellipse_85%_75%_at_92%_35%,rgba(106,13,173,0.5)_0%,transparent_52%),radial-gradient(ellipse_70%_60%_at_50%_100%,rgba(255,85,0,0.22)_0%,transparent_55%),linear-gradient(125deg,transparent_35%,rgba(59,130,246,0.12)_48%,rgba(255,80,0,0.08)_52%,transparent_65%),#070708]"
       aria-hidden="true"
     />
     <div
-      class="animate-glow-pulse pointer-events-none absolute -left-[20%] top-[15%] h-[min(90vw,720px)] w-[min(90vw,720px)] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(255,80,0,0.38)_0%,transparent_68%)] blur-3xl"
+      class="animate-glow-pulse pointer-events-none absolute -left-[28%] top-[8%] h-[min(110vw,900px)] w-[min(110vw,900px)] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(255,80,0,0.62)_0%,rgba(255,80,0,0.18)_42%,transparent_72%)] blur-[100px]"
       aria-hidden="true"
     />
     <div
-      class="animate-glow-pulse pointer-events-none absolute -right-[15%] bottom-[10%] h-[min(85vw,680px)] w-[min(85vw,680px)] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(138,47,201,0.42)_0%,transparent_70%)] blur-3xl [animation-delay:2s]"
+      class="animate-glow-pulse pointer-events-none absolute -right-[22%] top-[5%] h-[min(95vw,820px)] w-[min(95vw,820px)] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(138,47,201,0.55)_0%,rgba(168,85,247,0.15)_45%,transparent_72%)] blur-[100px] [animation-delay:1.2s]"
       aria-hidden="true"
     />
     <div
-      class="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(180deg,rgba(10,10,10,0)_0%,rgba(10,10,10,0.45)_50%,rgba(10,10,10,0.75)_100%)]"
+      class="animate-glow-pulse pointer-events-none absolute -bottom-[18%] left-[15%] h-[min(100vw,780px)] w-[min(100vw,780px)] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.28)_0%,rgba(255,80,0,0.12)_38%,transparent_68%)] blur-[90px] [animation-delay:2.4s]"
       aria-hidden="true"
     />
     <div
-      class="pointer-events-none absolute inset-0 z-[1] opacity-[0.35] [background-image:linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] [background-size:64px_64px]"
+      class="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(180deg,rgba(7,7,8,0.15)_0%,rgba(10,10,10,0.35)_45%,rgba(10,10,10,0.82)_100%)]"
+      aria-hidden="true"
+    />
+    <div
+      class="pointer-events-none absolute inset-0 z-[1] opacity-[0.4] [background-image:linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] [background-size:56px_56px]"
+      aria-hidden="true"
+    />
+    <div
+      class="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(105deg,transparent_20%,rgba(255,255,255,0.03)_48%,transparent_78%)]"
       aria-hidden="true"
     />
 
@@ -100,18 +108,18 @@ async function handleLogout() {
       ]"
       aria-label="Menu utama"
     >
-      <div class="flex h-[52px] shrink-0 items-center gap-2 border-b border-white/[0.06] bg-ds-black-200/40 px-3 backdrop-blur-sm">
+      <div class="flex h-[52px] shrink-0 items-center gap-2 border-b border-white/[0.08] bg-ds-black-200/40 px-3 backdrop-blur-sm">
         <span
-          class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-border-default bg-background-overlay/90 shadow-card-default"
+          class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-white/20 bg-white/[0.04] shadow-card-default"
         >
-          <Wallet :size="18" :stroke-width="2" class="text-accent-primary" />
+          <Wallet :size="18" :stroke-width="2" class="text-white" />
         </span>
-        <span class="truncate text-[14px] font-semibold tracking-tight">
+        <span class="truncate text-[14px] font-semibold tracking-tight text-white">
           G-Finance
         </span>
         <button
           type="button"
-          class="ml-auto rounded-[10px] p-1.5 text-text-tertiary hover:bg-white/[0.06] hover:text-text-primary md:hidden"
+          class="ml-auto rounded-[10px] p-1.5 text-white/80 hover:bg-white/[0.08] hover:text-white md:hidden"
           aria-label="Tutup menu"
           @click="closeSidebar"
         >
@@ -157,20 +165,20 @@ async function handleLogout() {
       >
         <button
           type="button"
-          class="rounded-[10px] p-2 text-text-secondary hover:bg-white/[0.06] hover:text-text-primary md:hidden"
+          class="rounded-[10px] p-2 text-white/85 hover:bg-white/[0.08] hover:text-white md:hidden"
           aria-label="Buka menu"
           @click="sidebarOpen = true"
         >
           <Menu :size="20" />
         </button>
 
-        <h1 class="min-w-0 flex-1 truncate text-[16px] font-semibold leading-tight tracking-[-0.01em]">
+        <h1 class="min-w-0 flex-1 truncate text-[16px] font-semibold leading-tight tracking-[-0.01em] text-white">
           {{ pageTitle }}
         </h1>
 
         <button
           type="button"
-          class="inline-flex shrink-0 items-center gap-2 rounded-[10px] border border-border-default bg-background-overlay/90 px-3 py-2 text-[13px] font-medium text-text-secondary shadow-card-default backdrop-blur-sm transition-colors hover:border-border-accent-orange hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background-base"
+          class="inline-flex shrink-0 items-center gap-2 rounded-[10px] border border-white/25 bg-white/[0.06] px-3 py-2 text-[13px] font-medium text-white shadow-card-default backdrop-blur-sm transition-colors hover:border-white/40 hover:bg-white/[0.12] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background-base"
           @click="handleLogout"
         >
           <LogOut :size="16" :stroke-width="2" />
