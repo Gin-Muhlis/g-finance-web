@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  PieChart,
   Tags,
   User,
   Wallet,
@@ -37,6 +38,11 @@ const navItems = [
     to: '/app/wallets',
     label: 'wallet',
     icon: Wallet,
+  },
+  {
+    to: '/app/budget',
+    label: 'Budget',
+    icon: PieChart,
   },
   {
     to: '/app/transactions',
