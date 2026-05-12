@@ -1,13 +1,13 @@
 <script setup>
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 
-import { X } from 'lucide-vue-next'
+import { Loader2, X } from 'lucide-vue-next'
 
 import CategoryIcon from '@/components/categories/CategoryIcon.vue'
+import RupiahInput from '@/components/ui/RupiahInput.vue'
 import {
   formatIdrId,
   parseMoneyString,
-  toApiMoneyString,
 } from '@/utils/moneyFormat.js'
 
 const MONTH_ID = [
@@ -30,6 +30,9 @@ const props = defineProps({
   year: { type: Number, required: true },
   month: { type: Number, required: true },
   summary: { type: Object, default: null },
+  /** Baris dari GET /api/budgets/items (semua halaman digabung di parent untuk form) */
+  itemLines: { type: Array, default: () => [] },
+  linesLoading: { type: Boolean, default: false },
   submitting: { type: Boolean, default: false },
   apiError: { type: String, default: '' },
 })
@@ -52,6 +55,29 @@ const periodLabel = computed(() => {
   return '—'
 })
 
+/** Jumlah alokasi semua kategori dari input saat ini */
+const sumAllocated = computed(() => {
+  if (!props.itemLines?.length) return 0
+  let s = 0
+  for (const line of props.itemLines) {
+    s += parseMoneyString(allocationById[line.category.id])
+  }
+  return s
+})
+
+/** Plafon bulanan jika diisi; `null` = tidak ada batas dari input */
+const capParsed = computed(() => {
+  const t = totalBudgetInput.value.trim()
+  if (t === '') return null
+  return parseMoneyString(t)
+})
+
+const exceedsMonthlyCap = computed(() => {
+  const cap = capParsed.value
+  if (cap == null) return false
+  return sumAllocated.value > cap
+})
+
 function resetState() {
   totalBudgetInput.value = ''
   errorMessage.value = ''
@@ -69,7 +95,7 @@ function loadFromSummary() {
       Math.round(parseFloat(String(cap))),
     )
   }
-  for (const line of props.summary.items) {
+  for (const line of props.itemLines) {
     const id = line.category.id
     if (line.hasBudget && line.allocatedAmount != null) {
       allocationById[id] = String(
@@ -82,7 +108,7 @@ function loadFromSummary() {
 }
 
 watch(
-  () => [props.open, props.summary, props.month, props.year],
+  () => [props.open, props.summary, props.itemLines, props.month, props.year],
   async () => {
     if (!props.open) {
       errorMessage.value = ''
@@ -92,6 +118,13 @@ watch(
     loadFromSummary()
   }
 )
+
+watch(exceedsMonthlyCap, (over) => {
+  if (over) return
+  if (errorMessage.value.includes('melebihi plafon')) {
+    errorMessage.value = ''
+  }
+})
 
 function close() {
   if (props.submitting) return
@@ -106,14 +139,14 @@ function onSubmit() {
   }
 
   const items = []
-  for (const line of props.summary.items) {
+  for (const line of props.itemLines) {
     const id = line.category.id
     const raw = allocationById[id]
     const amount = parseMoneyString(raw)
     if (amount > 0) {
       items.push({
         categoryId: id,
-        allocatedAmount: toApiMoneyString(amount),
+        allocatedAmount: Math.round(amount),
       })
     }
   }
@@ -124,8 +157,15 @@ function onSubmit() {
   }
 
   const capRaw = totalBudgetInput.value.trim()
+  const capNum = capRaw === '' ? null : parseMoneyString(capRaw)
+  if (capNum != null && sumAllocated.value > capNum) {
+    errorMessage.value =
+      `Total alokasi (${formatIdrId(sumAllocated.value)}) melebihi plafon bulanan (${formatIdrId(capNum)}). Kurangi alokasi per kategori atau naikkan plafon.`
+    return
+  }
+
   const totalPayload =
-    capRaw === '' ? null : toApiMoneyString(parseMoneyString(capRaw))
+    capRaw === '' ? null : Math.round(parseMoneyString(capRaw))
 
   emit('submit', {
     year: props.year,
@@ -194,6 +234,23 @@ function onSubmit() {
             {{ errorMessage }}
           </div>
 
+          <div
+            v-if="summary && exceedsMonthlyCap && capParsed != null"
+            role="alert"
+            class="mb-4 rounded-md border border-amber-500/45 bg-amber-500/10 px-3 py-2 text-[13px] text-amber-100/95"
+          >
+            Total alokasi
+            <span class="font-semibold tabular-nums">{{
+              formatIdrId(sumAllocated)
+            }}</span>
+            melebihi plafon bulanan
+            <span class="font-semibold tabular-nums">{{
+              formatIdrId(capParsed)
+            }}</span>
+            . Sesuaikan nominal per kategori atau naikkan plafon agar bisa
+            menyimpan.
+          </div>
+
           <div v-if="summary" class="space-y-5">
             <div>
               <label
@@ -202,14 +259,11 @@ function onSubmit() {
               >
                 Plafon total (opsional)
               </label>
-              <input
+              <RupiahInput
                 id="budget-total-cap"
                 v-model="totalBudgetInput"
-                type="text"
-                inputmode="numeric"
-                autocomplete="off"
-                placeholder="Contoh: 5000000"
-                class="w-full rounded-input border border-border-default bg-ds-black-200/80 px-3.5 py-2.5 text-body text-text-primary shadow-card-default outline-none transition-[border-color,box-shadow] duration-180 focus:border-border-accent-orange focus:shadow-input-focus"
+                placeholder="0"
+                :disabled="submitting"
               />
               <p class="mt-1.5 text-[12px] text-text-tertiary">
                 Batas atas bulanan; alokasi per kategori di bawah.
@@ -222,48 +276,69 @@ function onSubmit() {
               >
                 Alokasi per kategori
               </p>
-              <ul class="max-h-[min(44vh,360px)] space-y-2.5 overflow-y-auto pr-1">
-                <li
-                  v-for="line in summary.items"
-                  :key="line.category.id"
-                  class="flex items-center gap-3 rounded-[10px] border border-border-default bg-ds-black-400/50 px-3 py-2.5"
+              <div
+                v-if="linesLoading"
+                class="flex min-h-[120px] flex-col items-center justify-center gap-2 rounded-[10px] border border-border-default bg-ds-black-400/40 py-8"
+              >
+                <Loader2
+                  class="h-8 w-8 animate-spin text-accent-primary"
+                  :stroke-width="2"
+                />
+                <p class="text-[12px] text-text-tertiary">Memuat kategori…</p>
+              </div>
+              <template v-else>
+                <p
+                  v-if="!itemLines.length"
+                  class="rounded-[10px] border border-dashed border-border-default bg-ds-black-400/30 px-3 py-4 text-center text-[13px] text-text-tertiary"
                 >
-                  <div
-                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-white/[0.08] bg-ds-black-200/90"
-                    :style="{
-                      boxShadow: line.category.color
-                        ? `0 0 0 1px ${line.category.color}40`
-                        : undefined,
-                    }"
+                  Tidak ada kategori untuk dialokasikan.
+                </p>
+                <ul
+                  v-else
+                  class="max-h-[min(44vh,360px)] space-y-2.5 overflow-y-auto pr-1"
+                >
+                  <li
+                    v-for="line in itemLines"
+                    :key="line.category.id"
+                    class="flex items-center gap-3 rounded-[10px] border border-border-default bg-ds-black-400/50 px-3 py-2.5"
                   >
-                    <CategoryIcon
-                      :icon-name="line.category.icon"
-                      :color="line.category.color || '#FFFFFF'"
-                      :size="18"
-                    />
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <p
-                      class="truncate text-[13px] font-medium text-text-primary"
+                    <div
+                      class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-white/[0.08] bg-ds-black-200/90"
+                      :style="{
+                        boxShadow: line.category.color
+                          ? `0 0 0 1px ${line.category.color}40`
+                          : undefined,
+                      }"
                     >
-                      {{ line.category.name }}
-                    </p>
-                    <p class="text-[11px] text-text-tertiary">
-                      Aktual:
-                      {{ formatIdrId(parseMoneyString(line.actualAmount)) }}
-                    </p>
-                  </div>
-                  <div class="w-[120px] shrink-0 sm:w-[140px]">
-                    <input
-                      v-model="allocationById[line.category.id]"
-                      type="text"
-                      inputmode="numeric"
-                      placeholder="0"
-                      class="w-full rounded-input border border-border-default bg-ds-black-200/80 px-2.5 py-1.5 text-right font-mono text-[13px] text-text-primary tabular-nums outline-none transition-[border-color,box-shadow] duration-180 focus:border-border-accent-orange focus:shadow-input-focus"
-                    />
-                  </div>
-                </li>
-              </ul>
+                      <CategoryIcon
+                        :icon-name="line.category.icon || 'Tag'"
+                        :color="line.category.color || '#FFFFFF'"
+                        :size="18"
+                      />
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p
+                        class="truncate text-[13px] font-medium text-text-primary"
+                      >
+                        {{ line.category.name }}
+                      </p>
+                      <p class="text-[11px] text-text-tertiary">
+                        Aktual:
+                        {{ formatIdrId(parseMoneyString(line.actualAmount)) }}
+                      </p>
+                    </div>
+                    <div class="w-[min(100%,10.5rem)] shrink-0 sm:w-[11.5rem]">
+                      <RupiahInput
+                        :id="'budget-alloc-' + line.category.id"
+                        v-model="allocationById[line.category.id]"
+                        placeholder="0"
+                        compact
+                        :disabled="submitting"
+                      />
+                    </div>
+                  </li>
+                </ul>
+              </template>
             </div>
           </div>
         </div>
@@ -274,7 +349,7 @@ function onSubmit() {
           <button
             type="button"
             class="w-full rounded-[10px] bg-gradient-to-br from-ds-orange-100 to-ds-orange-300 px-5 py-2.5 text-[14px] font-semibold text-white shadow-button-orange transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
-            :disabled="submitting"
+            :disabled="submitting || exceedsMonthlyCap || linesLoading"
             @click="onSubmit"
           >
             {{ submitting ? 'Menyimpan…' : 'Simpan budget' }}

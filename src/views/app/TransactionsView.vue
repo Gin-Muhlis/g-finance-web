@@ -5,11 +5,13 @@ import {
   CalendarRange,
   ChevronLeft,
   ChevronRight,
+  ListFilter,
   Loader2,
   Plus,
 } from 'lucide-vue-next'
 
 import CategoryIcon from '@/components/categories/CategoryIcon.vue'
+import TransactionFilterModal from '@/components/transactions/TransactionFilterModal.vue'
 import TransactionFormModal from '@/components/transactions/TransactionFormModal.vue'
 import WalletIcon from '@/components/transactions/WalletIcon.vue'
 import { listCategories } from '@/services/categories'
@@ -58,7 +60,14 @@ const totalExpense = ref('0')
 const walletsById = ref({})
 const categoryById = ref({})
 
-const modalOpen = ref(false)
+const addFormOpen = ref(false)
+const filterModalOpen = ref(false)
+
+/** Filter terapkan ke API; kosong = tidak dikirim (selain startDate/endDate) */
+const filterWalletId = ref('')
+const filterCategoryId = ref('')
+/** '' | 'income' | 'expense' */
+const filterType = ref('')
 
 const monthLabel = computed(() => {
   const m = month.value
@@ -79,6 +88,45 @@ const monthRange = computed(() => {
   }
   return { startDate: fmt(start), endDate: fmt(end) }
 })
+
+const listTransactionParams = computed(() => {
+  const { startDate, endDate } = monthRange.value
+  const params = { startDate, endDate }
+  if (filterWalletId.value) params.walletId = filterWalletId.value
+  if (filterType.value) params.type = filterType.value
+  const cid = filterCategoryId.value
+  if (cid) {
+    const cat = categoryById.value[cid]
+    if (!cat) {
+      params.categoryId = cid
+    } else if (!filterType.value) {
+      params.categoryId = cid
+    } else if (cat.type === filterType.value) {
+      params.categoryId = cid
+    }
+  }
+  return params
+})
+
+const walletsList = computed(() => {
+  const list = Object.values(walletsById.value)
+  return list
+    .filter((w) => w.isActive !== false)
+    .sort((a, b) => String(a.name).localeCompare(b.name, 'id'))
+})
+
+const categoriesList = computed(() =>
+  Object.values(categoryById.value).filter(
+    (c) => c.type === 'income' || c.type === 'expense',
+  ),
+)
+
+const hasActiveFilters = computed(
+  () =>
+    !!filterWalletId.value ||
+    !!filterCategoryId.value ||
+    !!filterType.value,
+)
 
 const totalIncomeNum = computed(() => parseMoneyString(totalIncome.value))
 const totalExpenseNum = computed(() => parseMoneyString(totalExpense.value))
@@ -116,19 +164,29 @@ function formatDayHeader(isoDate) {
 function dayStats(transactions) {
   let inc = 0
   let exp = 0
+  let transfer = 0
   for (const t of transactions) {
     const a = parseMoneyString(t.amount)
     if (t.type === 'income') inc += a
-    else exp += a
+    else if (t.type === 'expense') exp += a
+    else if (t.type === 'transfer') transfer += a
   }
   return {
     count: transactions.length,
     income: inc,
     expense: exp,
+    transfer,
   }
 }
 
 function categoryMeta(t) {
+  if (t.type === 'transfer') {
+    return {
+      icon: 'ArrowLeftRight',
+      color: 'rgba(125, 211, 252, 0.95)',
+      name: 'Transfer',
+    }
+  }
   const nested = t.category
   const fromMap = categoryById.value[t.categoryId]
   const icon = nested?.icon ?? fromMap?.icon ?? null
@@ -138,8 +196,20 @@ function categoryMeta(t) {
 }
 
 function walletMeta(t) {
+  if (t.type === 'transfer') {
+    const from = t.fromWallet || walletsById.value[t.fromWalletId]
+    const to = t.toWallet || walletsById.value[t.toWalletId]
+    return {
+      kind: 'transfer',
+      fromName: from?.name ?? '—',
+      toName: to?.name ?? '—',
+      fromIcon: from?.icon || 'Wallet',
+      toIcon: to?.icon || 'Wallet',
+    }
+  }
   const w = walletsById.value[t.walletId]
   return {
+    kind: 'single',
     name: t.walletName || w?.name || '—',
     balance: w ? parseMoneyString(w.balance) : null,
     icon: w?.icon || 'Wallet',
@@ -170,13 +240,12 @@ async function loadMetaMaps() {
 async function load() {
   loading.value = true
   error.value = ''
-  const { startDate, endDate } = monthRange.value
   try {
-    const { data } = await listTransactions({ startDate, endDate })
+    await loadMetaMaps()
+    const { data } = await listTransactions(listTransactionParams.value)
     transactionsByDay.value = data?.transactionsByDay || []
     totalIncome.value = data?.totalIncome ?? '0'
     totalExpense.value = data?.totalExpense ?? '0'
-    await loadMetaMaps()
   } catch (e) {
     error.value =
       e?.response?.data?.message || 'Gagal memuat transaksi.'
@@ -188,17 +257,42 @@ async function load() {
 
 watch([year, month], load, { immediate: true })
 
-function openModal() {
-  modalOpen.value = true
+function openAddForm() {
+  addFormOpen.value = true
 }
 
-function closeModal() {
-  modalOpen.value = false
+function closeAddForm() {
+  addFormOpen.value = false
+}
+
+async function openFilterModal() {
+  await loadMetaMaps()
+  filterModalOpen.value = true
+}
+
+function onFilterClose() {
+  filterModalOpen.value = false
+}
+
+async function onFilterApply({ walletId, categoryId, type }) {
+  filterWalletId.value = walletId ?? ''
+  filterCategoryId.value = categoryId ?? ''
+  filterType.value = type ?? ''
+  filterModalOpen.value = false
+  await load()
+}
+
+async function onFilterReset() {
+  filterWalletId.value = ''
+  filterCategoryId.value = ''
+  filterType.value = ''
+  filterModalOpen.value = false
+  await load()
 }
 
 async function onSaved() {
   toast.success('Transaksi tersimpan.')
-  closeModal()
+  closeAddForm()
   await load()
 }
 
@@ -218,56 +312,82 @@ const defaultDateForModal = computed(() => {
 <template>
   <div class="space-y-6">
     <div
-      class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+      class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
     >
       <div
-        class="inline-flex h-9 w-full max-w-[min(100%,320px)] items-stretch overflow-hidden rounded-[10px] border border-border-default bg-ds-black-400/70 shadow-card-default"
+        class="flex w-full min-w-0 items-center gap-2 sm:min-w-0 sm:flex-1"
       >
-        <button
-          type="button"
-          class="px-2.5 text-text-secondary transition-colors hover:bg-white/[0.05] hover:text-text-primary"
-          :disabled="loading"
-          aria-label="Bulan sebelumnya"
-          @click="shiftMonth(-1)"
-        >
-          <ChevronLeft
-            :size="18"
-            :stroke-width="2"
-          />
-        </button>
         <div
-          class="flex min-w-0 flex-1 items-center justify-center gap-1.5 border-x border-border-default bg-ds-black-200/40 px-3"
+          class="inline-flex h-9 min-w-0 flex-1 max-w-[min(100%,320px)] items-stretch overflow-hidden rounded-[10px] border border-border-default bg-ds-black-400/70 shadow-card-default"
         >
-          <CalendarRange
-            :size="16"
-            :stroke-width="2"
-            class="shrink-0 text-accent-primary"
-          />
-          <span
-            class="truncate text-center text-[13px] font-medium tabular-nums text-text-primary"
+          <button
+            type="button"
+            class="px-2.5 text-text-secondary transition-colors hover:bg-white/[0.05] hover:text-text-primary"
+            :disabled="loading"
+            aria-label="Bulan sebelumnya"
+            @click="shiftMonth(-1)"
           >
-            {{ monthLabel }}
-          </span>
+            <ChevronLeft
+              :size="18"
+              :stroke-width="2"
+            />
+          </button>
+          <div
+            class="flex min-w-0 flex-1 items-center justify-center gap-1.5 border-x border-border-default bg-ds-black-200/40 px-3"
+          >
+            <CalendarRange
+              :size="16"
+              :stroke-width="2"
+              class="shrink-0 text-accent-primary"
+            />
+            <span
+              class="truncate text-center text-[13px] font-medium tabular-nums text-text-primary"
+            >
+              {{ monthLabel }}
+            </span>
+          </div>
+          <button
+            type="button"
+            class="px-2.5 text-text-secondary transition-colors hover:bg-white/[0.05] hover:text-text-primary"
+            :disabled="loading"
+            aria-label="Bulan berikutnya"
+            @click="shiftMonth(1)"
+          >
+            <ChevronRight
+              :size="18"
+              :stroke-width="2"
+            />
+          </button>
         </div>
         <button
           type="button"
-          class="px-2.5 text-text-secondary transition-colors hover:bg-white/[0.05] hover:text-text-primary"
+          class="relative flex h-9 w-9 shrink-0 items-center justify-center self-center rounded-[10px] border border-border-default bg-ds-black-400/70 text-text-secondary shadow-card-default transition-colors hover:border-border-accent-orange/50 hover:bg-white/[0.05] hover:text-text-primary"
+          :class="
+            hasActiveFilters
+              ? 'border-border-accent-orange/40 text-accent-primary'
+              : ''
+          "
           :disabled="loading"
-          aria-label="Bulan berikutnya"
-          @click="shiftMonth(1)"
+          aria-label="Filter transaksi"
+          @click="openFilterModal"
         >
-          <ChevronRight
+          <ListFilter
             :size="18"
             :stroke-width="2"
+          />
+          <span
+            v-if="hasActiveFilters"
+            class="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-accent-primary"
+            aria-hidden="true"
           />
         </button>
       </div>
 
       <button
         type="button"
-        class="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-gradient-to-br from-ds-orange-100 to-ds-orange-300 px-5 py-2.5 text-[14px] font-semibold text-white shadow-button-orange transition-opacity hover:opacity-95 sm:w-auto"
+        class="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-[10px] bg-gradient-to-br from-ds-orange-100 to-ds-orange-300 px-5 py-2.5 text-[14px] font-semibold text-white shadow-button-orange transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40 sm:ml-0 sm:w-auto"
         :disabled="loading"
-        @click="openModal"
+        @click="openAddForm"
       >
         <Plus
           :size="18"
@@ -276,6 +396,19 @@ const defaultDateForModal = computed(() => {
         Tambah transaksi
       </button>
     </div>
+
+    <TransactionFilterModal
+      :open="filterModalOpen"
+      :loading="loading"
+      :wallets="walletsList"
+      :categories="categoriesList"
+      :applied-wallet-id="filterWalletId"
+      :applied-category-id="filterCategoryId"
+      :applied-type="filterType"
+      @close="onFilterClose"
+      @apply="onFilterApply"
+      @reset="onFilterReset"
+    />
 
     <div
       v-if="error"
@@ -338,10 +471,18 @@ const defaultDateForModal = computed(() => {
         class="rounded-[14px] border border-dashed border-border-default bg-background-overlay px-4 py-12 text-center"
       >
         <p class="text-[14px] text-text-secondary">
-          Belum ada transaksi di bulan ini.
+          {{
+            hasActiveFilters
+              ? 'Tidak ada transaksi yang cocok dengan filter.'
+              : 'Belum ada transaksi di bulan ini.'
+          }}
         </p>
         <p class="mt-1 text-[13px] text-text-tertiary">
-          Tambah pemasukan atau pengeluaran dengan tombol di atas.
+          {{
+            hasActiveFilters
+              ? 'Ubah filter atau hapus filter untuk melihat lebih banyak data.'
+              : 'Tambah pemasukan atau pengeluaran dengan tombol di atas.'
+          }}
         </p>
       </div>
 
@@ -396,22 +537,38 @@ const defaultDateForModal = computed(() => {
                 {{ categoryMeta(t).name }}
               </p>
               <p class="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-text-tertiary">
-                <span class="inline-flex items-center gap-1">
+                <template v-if="walletMeta(t).kind === 'transfer'">
+                  <span class="inline-flex items-center gap-1">
+                    <WalletIcon
+                      :icon-name="walletMeta(t).fromIcon"
+                      :size="14"
+                      class="shrink-0"
+                    />
+                    {{ walletMeta(t).fromName }}
+                  </span>
+                  <span
+                    class="text-text-tertiary/80"
+                    aria-hidden="true"
+                  >→</span>
+                  <span class="inline-flex items-center gap-1">
+                    <WalletIcon
+                      :icon-name="walletMeta(t).toIcon"
+                      :size="14"
+                      class="shrink-0"
+                    />
+                    {{ walletMeta(t).toName }}
+                  </span>
+                </template>
+                <span
+                  v-else
+                  class="inline-flex items-center gap-1"
+                >
                   <WalletIcon
                     :icon-name="walletMeta(t).icon"
                     :size="14"
                     class="shrink-0"
                   />
                   {{ walletMeta(t).name }}
-                </span>
-                <span
-                  v-if="walletMeta(t).balance != null"
-                  class="text-text-tertiary"
-                >
-                  · saldo
-                  <span class="font-mono tabular-nums text-text-secondary">
-                    {{ formatIdrId(walletMeta(t).balance) }}
-                  </span>
                 </span>
               </p>
               <p
@@ -426,10 +583,21 @@ const defaultDateForModal = computed(() => {
             >
               <p
                 class="text-[15px] font-semibold tabular-nums"
-                :class="t.type === 'income' ? 'text-positive' : 'text-negative'"
+                :class="
+                  t.type === 'transfer'
+                    ? 'text-text-primary'
+                    : t.type === 'income'
+                      ? 'text-positive'
+                      : 'text-negative'
+                "
               >
-                {{ t.type === 'income' ? '+' : '−'
-                }}{{ formatIdrId(parseMoneyString(t.amount)) }}
+                <template v-if="t.type === 'transfer'">
+                  {{ formatIdrId(parseMoneyString(t.amount)) }}
+                </template>
+                <template v-else>
+                  {{ t.type === 'income' ? '+' : '−'
+                  }}{{ formatIdrId(parseMoneyString(t.amount)) }}
+                </template>
               </p>
             </div>
           </li>
@@ -439,9 +607,9 @@ const defaultDateForModal = computed(() => {
     </div>
 
     <TransactionFormModal
-      :open="modalOpen"
+      :open="addFormOpen"
       :default-date="defaultDateForModal"
-      @close="closeModal"
+      @close="closeAddForm"
       @saved="onSaved"
     />
   </div>

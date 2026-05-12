@@ -6,15 +6,13 @@ import {
   CalendarRange,
   ChevronLeft,
   ChevronRight,
-  Lightbulb,
-  PenLine,
+  Loader2,
   Plus,
 } from 'lucide-vue-next'
 
 import BudgetFormModal from '@/components/budget/BudgetFormModal.vue'
 import CategoryIcon from '@/components/categories/CategoryIcon.vue'
-import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
-import { deleteBudget, getBudgetSummary, putBudget } from '@/services/budgets'
+import { getBudgetItems, getBudgetSummary, putBudget } from '@/services/budgets'
 import { useToastStore } from '@/stores/toast'
 import {
   formatIdrId,
@@ -47,12 +45,25 @@ const summary = ref(null)
 const loading = ref(false)
 const error = ref('')
 
+const ITEMS_PAGE_SIZE = 10
+
+const budgetItems = ref([])
+const itemsPagination = ref({
+  page: 1,
+  limit: ITEMS_PAGE_SIZE,
+  total: 0,
+  totalPages: 0,
+})
+const itemsPage = ref(1)
+const itemsError = ref('')
+const itemsRefetching = ref(false)
+
+const modalBudgetLines = ref([])
+const modalLinesLoading = ref(false)
+
 const modalOpen = ref(false)
 const modalSubmitting = ref(false)
 const modalError = ref('')
-
-const deleteOpen = ref(false)
-const deleteLoading = ref(false)
 
 const monthLabel = computed(() => {
   const m = month.value
@@ -61,6 +72,14 @@ const monthLabel = computed(() => {
 })
 
 const hasBudgetRecord = computed(() => summary.value && summary.value.budget)
+
+const itemsRangeLabel = computed(() => {
+  const p = itemsPagination.value
+  if (!p?.total) return ''
+  const start = (p.page - 1) * p.limit + 1
+  const end = Math.min(p.page * p.limit, p.total)
+  return `${start}–${end} dari ${p.total}`
+})
 
 const totalAllocated = computed(() =>
   summary.value
@@ -94,33 +113,112 @@ const overallBarWidth = computed(() =>
   Math.min(100, overallRatio.value * 100),
 )
 
-const mainCardSemantic = computed(() => {
-  const p = overallRatio.value * 100
-  if (p >= 100) return 'danger'
-  if (p >= 70) return 'warning'
-  return 'normal'
-})
-
-const mainBarClass = computed(() => {
-  if (mainCardSemantic.value === 'danger') return 'from-negative to-[#B91C1C]'
-  if (mainCardSemantic.value === 'warning') {
-    return 'from-amber-500 to-amber-600'
-  }
-  return 'from-accent-primary to-ds-orange-300'
-})
-
-function lineRowSemantic(progressPercent) {
-  if (progressPercent == null) return 'muted'
-  if (progressPercent >= 100) return 'danger'
-  if (progressPercent >= 70) return 'warning'
-  return 'normal'
+/**
+ * Warna progres per rentang ~25%: 0–24, 25–49, 50–74, 75–99, 100% penuh, over (>100 / melewati)
+ */
+function progressBucket(percent, isOver) {
+  if (percent == null || Number.isNaN(percent)) return 'muted'
+  if (isOver || percent > 100) return 'over'
+  if (percent >= 100) return 'p100'
+  if (percent >= 75) return 'p75'
+  if (percent >= 50) return 'p50'
+  if (percent >= 25) return 'p25'
+  return 'p0'
 }
 
-function lineBarClass(semantic) {
-  if (semantic === 'danger') return 'from-negative to-[#B91C1C]'
-  if (semantic === 'warning') return 'from-amber-500 to-amber-600'
-  if (semantic === 'muted') return 'from-ds-gray-300 to-ds-gray-400'
-  return 'from-accent-primary to-ds-orange-300'
+const mainOverBudget = computed(
+  () =>
+    totalAllocated.value > 0 && totalActual.value > totalAllocated.value,
+)
+
+const mainCardSemantic = computed(() =>
+  progressBucket(overallDisplayPercent.value, mainOverBudget.value),
+)
+
+const mainBarClass = computed(() => barGradientForBucket(mainCardSemantic.value))
+
+const mainPercentTextClass = computed(() => {
+  const b = mainCardSemantic.value
+  if (b === 'over') return 'text-negative'
+  if (b === 'p100') return 'text-ds-orange-200'
+  if (b === 'p75') return 'text-ds-orange-300'
+  if (b === 'p50') return 'text-amber-400'
+  if (b === 'p25') return 'text-cyan-400'
+  if (b === 'p0') return 'text-emerald-400'
+  if (b === 'muted') return 'text-text-tertiary'
+  return 'text-text-primary'
+})
+
+function barGradientForBucket(bucket) {
+  switch (bucket) {
+    case 'over':
+      return 'from-negative to-[#B91C1C]'
+    case 'p100':
+      return 'from-amber-600 to-ds-orange-200'
+    case 'p75':
+      return 'from-orange-500 to-ds-orange-300'
+    case 'p50':
+      return 'from-amber-500 to-amber-600'
+    case 'p25':
+      return 'from-cyan-500 to-teal-600'
+    case 'p0':
+      return 'from-emerald-500 to-emerald-600'
+    case 'muted':
+      return 'from-ds-gray-300 to-ds-gray-400'
+    default:
+      return 'from-ds-gray-300 to-ds-gray-400'
+  }
+}
+
+function lineBarClassForLine(line) {
+  if (!line.hasBudget) return barGradientForBucket('muted')
+  return barGradientForBucket(
+    progressBucket(line.progressPercent, line.isOverBudget),
+  )
+}
+
+function lineProgressPercentTextClass(line) {
+  if (!line.hasBudget || line.progressPercent == null) return 'text-text-tertiary'
+  if (line.isOverBudget) return 'text-negative'
+  return percentLabelClass(
+    progressBucket(line.progressPercent, line.isOverBudget),
+  )
+}
+
+function percentLabelClass(bucket) {
+  switch (bucket) {
+    case 'p100':
+      return 'text-ds-orange-200'
+    case 'p75':
+      return 'text-ds-orange-300'
+    case 'p50':
+      return 'text-amber-400'
+    case 'p25':
+      return 'text-cyan-400/95'
+    case 'p0':
+      return 'text-emerald-400/95'
+    default:
+      return 'text-text-primary'
+  }
+}
+
+/** Sisa budget per kategori (API: remaining = allocated − actual) */
+function lineRemainingIdr(line) {
+  if (!line.hasBudget) return null
+  if (line.remaining != null && line.remaining !== '') {
+    return parseMoneyString(line.remaining)
+  }
+  return (
+    parseMoneyString(line.allocatedAmount) - parseMoneyString(line.actualAmount)
+  )
+}
+
+function remainingAmountClass(line) {
+  const r = lineRemainingIdr(line)
+  if (r == null) return 'text-text-primary'
+  if (r < 0) return 'text-negative'
+  if (r === 0) return 'text-text-tertiary'
+  return 'text-positive'
 }
 
 function lineBarWidth(line) {
@@ -128,78 +226,6 @@ function lineBarWidth(line) {
   const p = line.progressPercent
   if (p == null) return 0
   return Math.min(100, p)
-}
-
-const insights = computed(() => {
-  if (!summary.value) return []
-  const lines = summary.value.items || []
-  const out = []
-  const totalA = totalActual.value
-  const totalAll = totalAllocated.value
-  const rem = totalRemaining.value
-
-  for (const line of lines) {
-    if (line.isOverBudget && line.hasBudget) {
-      const a = parseMoneyString(line.actualAmount)
-      const b = parseMoneyString(line.allocatedAmount)
-      const over = a - b
-      if (over > 0) {
-        out.push({
-          key: `over-${line.category.id}`,
-          text: `Kamu over budget di ${line.category.name} (lebih ${formatIdrId(over)} dari rencana)`,
-        })
-      }
-    }
-  }
-
-  if (lines.length && totalA > 0) {
-    let maxA = -1
-    let maxLine = null
-    for (const line of lines) {
-      const a = parseMoneyString(line.actualAmount)
-      if (a > maxA) {
-        maxA = a
-        maxLine = line
-      }
-    }
-    if (maxLine) {
-      const pct = Math.round((maxA / totalA) * 100)
-      out.push({
-        key: 'largest',
-        text: `Pengeluaran terbesar: ${maxLine.category.name} (${pct}%)`,
-      })
-    }
-  }
-
-  if (isViewingCurrentMonth() && rem > 0 && totalA > 0 && totalAll > 0) {
-    const d = new Date()
-    const dayOfMonth = d.getDate()
-    const daily = totalA / dayOfMonth
-    if (daily > 0) {
-      const est = Math.floor(rem / daily)
-      if (est > 0 && est < 500) {
-        out.push({
-          key: 'days',
-          text: `Sisa budget cukup untuk sekitar ${est} hari (perkiraan dari laju pengeluaran bulan ini)`,
-        })
-      }
-    }
-  }
-
-  if (!out.length) {
-    out.push({
-      key: 'empty',
-      text:
-        'Tambah alokasi per kategori untuk mendapat saran keuangan yang lebih jelas.',
-    })
-  }
-
-  return out
-})
-
-function isViewingCurrentMonth() {
-  const d = new Date()
-  return d.getFullYear() === year.value && d.getMonth() + 1 === month.value
 }
 
 function shiftMonth(delta) {
@@ -218,9 +244,54 @@ function shiftMonth(delta) {
   month.value = m
 }
 
+async function loadBudgetItemsPage(page) {
+  const { data } = await getBudgetItems(year.value, month.value, {
+    page,
+    limit: ITEMS_PAGE_SIZE,
+  })
+  budgetItems.value = data.items ?? []
+  const pg = data.pagination ?? {}
+  itemsPagination.value = {
+    page: pg.page ?? page,
+    limit: pg.limit ?? ITEMS_PAGE_SIZE,
+    total: pg.total ?? 0,
+    totalPages: pg.totalPages ?? 0,
+  }
+  itemsPage.value = itemsPagination.value.page
+}
+
+async function fetchAllBudgetLinesForModal() {
+  const limit = 100
+  let page = 1
+  let totalPages = 1
+  const all = []
+  while (page <= totalPages) {
+    const { data } = await getBudgetItems(year.value, month.value, {
+      page,
+      limit,
+    })
+    const batch = data.items ?? []
+    all.push(...batch)
+    totalPages = data.pagination?.totalPages ?? 1
+    page += 1
+  }
+  return all
+}
+
 async function load() {
   loading.value = true
   error.value = ''
+  itemsError.value = ''
+  itemsPage.value = 1
+  summary.value = null
+  budgetItems.value = []
+  itemsPagination.value = {
+    page: 1,
+    limit: ITEMS_PAGE_SIZE,
+    total: 0,
+    totalPages: 0,
+  }
+
   try {
     const { data } = await getBudgetSummary(year.value, month.value)
     summary.value = data
@@ -228,8 +299,33 @@ async function load() {
     error.value =
       e?.response?.data?.message || 'Gagal memuat data budget.'
     summary.value = null
+    return
+  }
+
+  try {
+    await loadBudgetItemsPage(1)
+  } catch (e) {
+    itemsError.value =
+      e?.response?.data?.message || 'Gagal memuat daftar per kategori.'
+    budgetItems.value = []
   } finally {
     loading.value = false
+  }
+}
+
+async function goBudgetItemsPage(p) {
+  const max = itemsPagination.value.totalPages || 1
+  if (p < 1 || p > max) return
+  itemsRefetching.value = true
+  itemsError.value = ''
+  try {
+    await loadBudgetItemsPage(p)
+  } catch (e) {
+    itemsError.value =
+      e?.response?.data?.message || 'Gagal memuat daftar per kategori.'
+    budgetItems.value = []
+  } finally {
+    itemsRefetching.value = false
   }
 }
 
@@ -237,12 +333,29 @@ watch([year, month], load, { immediate: true })
 
 function openModal() {
   modalError.value = ''
+  modalLinesLoading.value = true
   modalOpen.value = true
+  modalBudgetLines.value = []
+  fetchAllBudgetLinesForModal()
+    .then((lines) => {
+      modalBudgetLines.value = lines
+    })
+    .catch((e) => {
+      const msg =
+        e?.response?.data?.message ||
+        'Gagal memuat kategori untuk form budget.'
+      modalError.value = msg
+      toast.error(msg)
+    })
+    .finally(() => {
+      modalLinesLoading.value = false
+    })
 }
 
 function closeModal() {
   if (modalSubmitting.value) return
   modalOpen.value = false
+  modalBudgetLines.value = []
 }
 
 async function onModalSubmit(body) {
@@ -260,34 +373,6 @@ async function onModalSubmit(body) {
     toast.error(msg)
   } finally {
     modalSubmitting.value = false
-  }
-}
-
-function requestDelete() {
-  if (!summary.value?.budget?.id) return
-  deleteOpen.value = true
-}
-
-function closeDelete() {
-  if (deleteLoading.value) return
-  deleteOpen.value = false
-}
-
-async function confirmDelete() {
-  const id = summary.value?.budget?.id
-  if (!id) return
-  deleteLoading.value = true
-  try {
-    await deleteBudget(id)
-    deleteOpen.value = false
-    toast.success('Budget bulan ini dihapus.')
-    await load()
-  } catch (e) {
-    const msg =
-      e?.response?.data?.message || 'Gagal menghapus budget.'
-    toast.error(msg)
-  } finally {
-    deleteLoading.value = false
   }
 }
 </script>
@@ -438,11 +523,7 @@ async function confirmDelete() {
           <div class="mb-2 flex items-end justify-between gap-2">
             <p
               class="text-[28px] font-bold tabular-nums leading-none sm:text-[32px]"
-              :class="
-                mainCardSemantic === 'danger'
-                  ? 'text-negative'
-                  : 'text-text-primary'
-              "
+              :class="mainPercentTextClass"
             >
               {{ overallDisplayPercent }}%
             </p>
@@ -486,21 +567,46 @@ async function confirmDelete() {
         <h2 class="text-[16px] font-semibold text-text-primary">
           Per kategori
         </h2>
-        <p class="mt-0.5 text-body-sm text-text-secondary">
-          Bandingkan anggaran dengan pengeluaran aktual. Over budget
-          diberi tanda.
+        <p
+          v-if="itemsRangeLabel"
+          class="mt-1 text-[12px] text-text-tertiary"
+        >
+          {{ itemsRangeLabel }}
         </p>
-        <ul class="mt-4 space-y-3">
-          <li
-            v-for="line in summary.items"
-            :key="line.category.id"
-            class="rounded-[14px] border border-border-default bg-background-surface/85 p-4 shadow-card-default"
-            :class="
-              line.isOverBudget
-                ? 'border-negative/25 bg-negative/[0.04]'
-                : ''
-            "
+        <div
+          v-if="itemsError"
+          role="alert"
+          class="mt-3 rounded-md border border-negative/40 bg-negative/10 px-3 py-2 text-[13px] text-negative"
+        >
+          {{ itemsError }}
+        </div>
+        <div
+          class="relative mt-4"
+          :class="itemsRefetching ? 'opacity-60' : ''"
+        >
+          <div
+            v-if="itemsRefetching"
+            class="pointer-events-none absolute inset-0 z-[1] flex items-start justify-center pt-12"
           >
+            <Loader2
+              class="h-8 w-8 animate-spin text-accent-primary"
+              :stroke-width="2"
+            />
+          </div>
+          <ul
+            v-if="budgetItems.length"
+            class="space-y-3"
+          >
+            <li
+              v-for="line in budgetItems"
+              :key="line.category.id"
+              class="rounded-[14px] border border-border-default bg-background-surface/85 p-4 shadow-card-default"
+              :class="
+                line.isOverBudget
+                  ? 'border-negative/25 bg-negative/[0.04]'
+                  : ''
+              "
+            >
             <div class="flex items-start gap-3">
               <div
                 class="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] border border-white/[0.08] bg-ds-black-200/90"
@@ -511,7 +617,7 @@ async function confirmDelete() {
                 }"
               >
                 <CategoryIcon
-                  :icon-name="line.category.icon"
+                  :icon-name="line.category.icon || 'Tag'"
                   :color="line.category.color || '#FFFFFF'"
                   :size="22"
                 />
@@ -535,11 +641,7 @@ async function confirmDelete() {
                   >
                     <span
                       class="text-[15px] font-semibold tabular-nums"
-                      :class="
-                        line.isOverBudget
-                          ? 'text-negative'
-                          : 'text-text-primary'
-                      "
+                      :class="lineProgressPercentTextClass(line)"
                     >
                       {{ line.progressPercent != null
                         ? `${line.progressPercent}%`
@@ -575,6 +677,18 @@ async function confirmDelete() {
                       {{ formatIdrId(parseMoneyString(line.actualAmount)) }}
                     </span>
                   </span>
+                  <span
+                    v-if="line.hasBudget"
+                    class="text-text-secondary"
+                  >
+                    Sisa:
+                    <span
+                      class="font-mono font-medium tabular-nums"
+                      :class="remainingAmountClass(line)"
+                    >
+                      {{ formatIdrId(lineRemainingIdr(line) ?? 0) }}
+                    </span>
+                  </span>
                 </div>
                 <div
                   v-if="line.hasBudget"
@@ -582,11 +696,7 @@ async function confirmDelete() {
                 >
                   <div
                     class="h-full rounded-full bg-gradient-to-r transition-[width] duration-500 ease-out"
-                    :class="
-                      lineBarClass(
-                        lineRowSemantic(line.progressPercent),
-                      )
-                    "
+                    :class="lineBarClassForLine(line)"
                     :style="{
                       width: `${lineBarWidth(line)}%`,
                     }"
@@ -608,80 +718,51 @@ async function confirmDelete() {
               </div>
             </div>
           </li>
-        </ul>
-      </div>
-
-      <!-- SECTION 4: Insights -->
-      <div
-        class="rounded-[14px] border border-border-default bg-ds-black-300/40 p-4 shadow-card-default sm:p-5"
-      >
-        <div class="mb-3 flex items-center gap-2">
-          <div
-            class="flex h-8 w-8 items-center justify-center rounded-[10px] border border-border-accent-purple/40 bg-[rgba(138,47,201,0.1)]"
+          </ul>
+          <p
+            v-else-if="!itemsError"
+            class="rounded-[14px] border border-dashed border-border-default px-4 py-8 text-center text-[13px] text-text-tertiary"
           >
-            <Lightbulb
-              :size="18"
-              :stroke-width="2"
-              class="text-ds-purple-400"
-            />
-          </div>
-          <h2 class="text-[16px] font-semibold text-text-primary">
-            Insight
-          </h2>
+            Tidak ada baris untuk ditampilkan.
+          </p>
         </div>
-        <ul class="space-y-2.5 text-body-sm text-text-secondary">
-          <li
-            v-for="row in insights"
-            :key="row.key"
-            class="flex gap-2 border-l-2 pl-3"
-            :class="
-              row.key.startsWith('over')
-                ? 'border-amber-500/70'
-                : 'border-ds-gray-200/30'
-            "
-          >
-            <span class="text-text-tertiary" aria-hidden="true">•</span>
-            <span class="min-w-0 flex-1 leading-relaxed">{{
-              row.text
+        <div
+          v-if="itemsPagination.totalPages > 1"
+          class="mt-4 flex flex-col items-stretch gap-3 border-t border-white/[0.06] pt-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p class="text-center text-[12px] text-text-tertiary sm:text-left">
+            Halaman
+            <span class="font-mono tabular-nums text-text-secondary">{{
+              itemsPage
             }}</span>
-          </li>
-        </ul>
+            /
+            <span class="font-mono tabular-nums text-text-secondary">{{
+              itemsPagination.totalPages
+            }}</span>
+          </p>
+          <div class="flex items-center justify-center gap-2">
+            <button
+              type="button"
+              class="rounded-[10px] border border-border-default bg-ds-black-400/80 px-4 py-2 text-[13px] font-medium text-text-secondary transition-colors hover:border-white/15 hover:bg-ds-black-400 disabled:cursor-not-allowed disabled:opacity-35"
+              :disabled="itemsPage <= 1 || itemsRefetching"
+              @click="goBudgetItemsPage(itemsPage - 1)"
+            >
+              Sebelumnya
+            </button>
+            <button
+              type="button"
+              class="rounded-[10px] border border-border-default bg-ds-black-400/80 px-4 py-2 text-[13px] font-medium text-text-secondary transition-colors hover:border-white/15 hover:bg-ds-black-400 disabled:cursor-not-allowed disabled:opacity-35"
+              :disabled="
+                itemsPage >= itemsPagination.totalPages || itemsRefetching
+              "
+              @click="goBudgetItemsPage(itemsPage + 1)"
+            >
+              Berikutnya
+            </button>
+          </div>
+        </div>
       </div>
 
-      <!-- SECTION 5: Action area -->
-      <div
-        class="flex flex-col gap-3 rounded-[14px] border border-white/[0.08] bg-background-overlay/50 p-4 sm:flex-row sm:items-center sm:justify-between"
-      >
-        <div>
-          <p class="text-[15px] font-medium text-text-primary">
-            Aksi budget
-          </p>
-          <p class="mt-0.5 text-body-sm text-text-secondary">
-            Atur alokasi bulanan atau batalkan budget.
-          </p>
-        </div>
-        <div class="flex flex-col gap-2 sm:flex-row sm:shrink-0">
-          <button
-            type="button"
-            class="inline-flex items-center justify-center gap-2 rounded-[10px] border border-border-default bg-ds-black-400/80 px-4 py-2.5 text-[13px] font-medium text-text-primary transition-colors hover:border-border-accent-orange hover:bg-ds-black-400"
-            @click="openModal"
-          >
-            <PenLine
-              :size="16"
-              :stroke-width="2"
-            />
-            {{ hasBudgetRecord ? 'Edit' : 'Tambah' }} budget
-          </button>
-          <button
-            v-if="hasBudgetRecord"
-            type="button"
-            class="inline-flex items-center justify-center rounded-[10px] border border-negative/30 bg-negative/10 px-4 py-2.5 text-[13px] font-medium text-negative transition-colors hover:bg-negative/20"
-            @click="requestDelete"
-          >
-            Hapus budget
-          </button>
-        </div>
-      </div>
     </template>
 
     <BudgetFormModal
@@ -689,21 +770,12 @@ async function confirmDelete() {
       :year="year"
       :month="month"
       :summary="summary"
+      :item-lines="modalBudgetLines"
+      :lines-loading="modalLinesLoading"
       :submitting="modalSubmitting"
       :api-error="modalError"
       @close="closeModal"
       @submit="onModalSubmit"
-    />
-
-    <ConfirmDialog
-      :open="deleteOpen"
-      title="Hapus budget bulan ini?"
-      message="Alokasi untuk bulan yang dipilih akan dihapus. Data transaksi tidak berubah."
-      confirm-text="Hapus"
-      cancel-text="Batal"
-      :loading="deleteLoading"
-      @close="closeDelete"
-      @confirm="confirmDelete"
     />
   </div>
 </template>

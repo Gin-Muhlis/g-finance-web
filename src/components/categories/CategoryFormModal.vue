@@ -28,11 +28,7 @@ const title = computed(() =>
 )
 
 function normalizeDefaultCategoryType(defaultTypeValue) {
-  if (
-    defaultTypeValue === 'income' ||
-    defaultTypeValue === 'expense' ||
-    defaultTypeValue === 'allocation'
-  ) {
+  if (defaultTypeValue === 'income' || defaultTypeValue === 'expense') {
     return defaultTypeValue
   }
   return 'expense'
@@ -41,8 +37,7 @@ function normalizeDefaultCategoryType(defaultTypeValue) {
 function categoryTypeDisplayLabel(categoryTypeValue) {
   if (categoryTypeValue === 'income') return 'Pemasukan'
   if (categoryTypeValue === 'expense') return 'Pengeluaran'
-  if (categoryTypeValue === 'allocation') return 'Alokasi'
-  return categoryTypeValue || '—'
+  return '—'
 }
 
 function resetForm() {
@@ -219,7 +214,6 @@ function iconButtonClass(isActive) {
               >
                 <option value="income">Pemasukan</option>
                 <option value="expense">Pengeluaran</option>
-                <option value="allocation">Alokasi</option>
               </select>
             </div>
             <div v-else class="rounded-[8px] border border-border-default bg-ds-black-400/70 px-[14px] py-2.5">

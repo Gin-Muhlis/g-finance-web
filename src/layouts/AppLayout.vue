@@ -9,6 +9,7 @@ import {
   LogOut,
   Menu,
   PieChart,
+  PiggyBank,
   Tags,
   User,
   Wallet,
@@ -43,6 +44,11 @@ const navItems = [
     to: '/app/budget',
     label: 'Budget',
     icon: PieChart,
+  },
+  {
+    to: '/app/allocations',
+    label: 'Alokasi',
+    icon: PiggyBank,
   },
   {
     to: '/app/transactions',

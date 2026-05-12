@@ -3,8 +3,8 @@ import { computed, nextTick, ref, watch } from 'vue'
 
 import { ChevronDown, X } from 'lucide-vue-next'
 
+import RupiahInput from '@/components/ui/RupiahInput.vue'
 import { WALLET_FINANCE_ICON_NAMES } from '@/constants/walletFinanceIconNames'
-import { formatIndonesianRupiah } from '@/utils/formatIndonesianRupiah'
 import { getCategoryIconComponent } from '@/utils/categoryIconMap'
 
 const props = defineProps({
@@ -27,11 +27,6 @@ const validationErrorMessage = ref('')
 const modalTitle = computed(() =>
   props.mode === 'create' ? 'Tambah wallet' : 'Edit wallet'
 )
-
-const formattedBalanceForDisplay = computed(() => {
-  const balanceStringForApi = normalizeBalanceDigitsForApi(balanceDigitsOnly.value)
-  return formatIndonesianRupiah(Number(balanceStringForApi))
-})
 
 function normalizeDefaultWalletType(defaultTypeValue) {
   if (
@@ -114,62 +109,6 @@ watch(
 function closeModal() {
   if (props.submitting) return
   emit('close')
-}
-
-function onBalanceAmountInput(event) {
-  const digits = event.target.value.replace(/\D/g, '')
-  balanceDigitsOnly.value = digits
-}
-
-function onBalanceBeforeInput(event) {
-  const inputType = event.inputType ?? ''
-  if (
-    inputType === 'deleteContentBackward' ||
-    inputType === 'deleteContentForward' ||
-    inputType === 'deleteByCut' ||
-    inputType === 'historyUndo' ||
-    inputType === 'historyRedo'
-  ) {
-    return
-  }
-  if (inputType === 'insertFromPaste' || inputType === 'insertFromDrag') {
-    return
-  }
-  const insertedText = event.data
-  if (
-    insertedText != null &&
-    typeof insertedText === 'string' &&
-    insertedText.length > 0 &&
-    !/^\d+$/.test(insertedText)
-  ) {
-    event.preventDefault()
-  }
-}
-
-function onBalanceKeydown(event) {
-  if (event.ctrlKey || event.metaKey || event.altKey) {
-    return
-  }
-  const allowedNonCharacterKeys = [
-    'Backspace',
-    'Delete',
-    'Tab',
-    'Escape',
-    'Enter',
-    'ArrowLeft',
-    'ArrowRight',
-    'ArrowUp',
-    'ArrowDown',
-    'Home',
-    'End',
-  ]
-  if (allowedNonCharacterKeys.includes(event.key)) {
-    return
-  }
-  if (event.key.length === 1 && /\d/.test(event.key)) {
-    return
-  }
-  event.preventDefault()
 }
 
 function iconButtonClass(isActive) {
@@ -385,20 +324,13 @@ function submitForm() {
                 for="wallet-balance"
                 class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.06em] text-text-tertiary"
               >
-                Saldo (IDR)
+                Saldo
               </label>
-              <input
+              <RupiahInput
                 id="wallet-balance"
-                :value="formattedBalanceForDisplay"
-                type="text"
-                inputmode="numeric"
-                autocomplete="off"
-                class="w-full rounded-[8px] border border-border-default bg-[rgba(255,255,255,0.05)] px-[14px] py-[10px] font-mono text-[14px] text-text-primary tabular-nums placeholder:text-text-disabled focus:border-[rgba(255,80,0,0.6)] focus:outline-none focus:ring-[3px] focus:ring-[rgba(255,80,0,0.15)]"
-                placeholder="Rp0"
+                v-model="balanceDigitsOnly"
+                placeholder="0"
                 :disabled="submitting"
-                @beforeinput="onBalanceBeforeInput"
-                @keydown="onBalanceKeydown"
-                @input="onBalanceAmountInput"
               />
             </div>
           </div>

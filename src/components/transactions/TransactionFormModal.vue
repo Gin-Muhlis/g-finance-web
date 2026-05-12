@@ -1,8 +1,10 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
 
-import { X } from 'lucide-vue-next'
+import { Calendar, X } from 'lucide-vue-next'
 
+import DatePickerModal from '@/components/transactions/DatePickerModal.vue'
+import RupiahInput from '@/components/ui/RupiahInput.vue'
 import { listCategories } from '@/services/categories'
 import { createTransaction } from '@/services/transactions'
 import { listWallets } from '@/services/wallets'
@@ -33,8 +35,31 @@ const transactionDate = ref('')
 const loadingMeta = ref(false)
 const submitting = ref(false)
 const localError = ref('')
+const datePickerOpen = ref(false)
 
 const title = 'Tambah transaksi'
+
+function parseYmdString(s) {
+  if (!s || typeof s !== 'string') return null
+  const t = s.trim()
+  const p = t.split(/[-/]/).map((x) => parseInt(x, 10))
+  if (p.length !== 3) return null
+  const [y, m, d] = p
+  if (!y || m < 1 || m > 12 || d < 1 || d > 31) return null
+  const dt = new Date(y, m - 1, d)
+  if (
+    dt.getFullYear() !== y ||
+    dt.getMonth() !== m - 1 ||
+    dt.getDate() !== d
+  ) {
+    return null
+  }
+  return { y, m, d }
+}
+
+function toYmdString(y, m, d) {
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+}
 
 const categoriesForType = computed(() => {
   const t = txType.value
@@ -135,6 +160,17 @@ async function onSubmit() {
     return
   }
 
+  const dateParts = parseYmdString(transactionDate.value)
+  if (!dateParts) {
+    localError.value = 'Tanggal tidak valid. Gunakan format YYYY-MM-DD.'
+    return
+  }
+  const transactionDateYmd = toYmdString(
+    dateParts.y,
+    dateParts.m,
+    dateParts.d,
+  )
+
   submitting.value = true
   try {
     await createTransaction({
@@ -143,7 +179,7 @@ async function onSubmit() {
       type: txType.value,
       amount: toApiMoneyString(amount),
       description: description.value.trim() || undefined,
-      transactionDate: transactionDate.value,
+      transactionDate: transactionDateYmd,
     })
     emit('saved')
   } catch (e) {
@@ -255,13 +291,31 @@ async function onSubmit() {
               >
                 Tanggal
               </label>
-              <input
-                id="tx-date"
-                v-model="transactionDate"
-                type="date"
-                class="mt-1.5 w-full rounded-input border border-border-default bg-ds-black-400/80 px-3.5 py-2.5 text-[14px] text-text-primary shadow-inner outline-none transition-[box-shadow] focus:border-border-accent-orange focus:shadow-input-focus"
-                required
-              />
+              <div class="mt-1.5 flex gap-2">
+                <input
+                  id="tx-date"
+                  v-model="transactionDate"
+                  type="text"
+                  readonly
+                  placeholder="Klik untuk memilih"
+                  autocomplete="off"
+                  tabindex="0"
+                  class="min-h-[42px] min-w-0 flex-1 cursor-pointer rounded-input border border-border-default bg-ds-black-400/80 px-3.5 py-2.5 font-mono text-[14px] tabular-nums text-text-primary shadow-inner outline-none transition-[box-shadow] focus:border-border-accent-orange focus:shadow-input-focus"
+                  required
+                  @click="datePickerOpen = true"
+                />
+                <button
+                  type="button"
+                  class="inline-flex h-[42px] w-11 shrink-0 items-center justify-center rounded-input border border-border-default bg-ds-black-400/80 text-text-secondary transition-colors hover:border-border-accent-orange/50 hover:text-accent-primary"
+                  aria-label="Buka pilih tanggal"
+                  @click="datePickerOpen = true"
+                >
+                  <Calendar
+                    :size="20"
+                    :stroke-width="2"
+                  />
+                </button>
+              </div>
             </div>
 
             <div>
@@ -332,18 +386,17 @@ async function onSubmit() {
                 for="tx-amount"
                 class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary"
               >
-                Nominal (IDR)
+                Nominal
               </label>
-              <input
-                id="tx-amount"
-                v-model="amountInput"
-                type="text"
-                inputmode="decimal"
-                placeholder="0"
-                class="mt-1.5 w-full rounded-input border border-border-default bg-ds-black-400/80 px-3.5 py-2.5 font-mono text-[15px] tabular-nums text-text-primary shadow-inner outline-none focus:border-border-accent-orange focus:shadow-input-focus"
-                autocomplete="off"
-                required
-              />
+              <div class="mt-1.5">
+                <RupiahInput
+                  id="tx-amount"
+                  v-model="amountInput"
+                  placeholder="0"
+                  :disabled="submitting"
+                  required
+                />
+              </div>
             </div>
 
             <div>
@@ -363,6 +416,12 @@ async function onSubmit() {
               />
             </div>
           </form>
+
+          <DatePickerModal
+            v-model="transactionDate"
+            :open="datePickerOpen"
+            @close="datePickerOpen = false"
+          />
         </div>
 
         <div

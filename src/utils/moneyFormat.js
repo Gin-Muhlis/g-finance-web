@@ -17,6 +17,16 @@ export function formatIdrId(amount) {
   }).format(Math.round(amount))
 }
 
+/** Angka bulat dengan pemisah ribuan id-ID, tanpa prefix (mis. "1.234.567") — untuk field input */
+export function formatIdrGroupedInteger(amount) {
+  const n = Math.round(Number(amount))
+  if (!Number.isFinite(n)) return ''
+  return new Intl.NumberFormat('id-ID', {
+    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+  }).format(n)
+}
+
 /** Short label for progress lines: "3,2 jt" */
 export function formatIdrShort(amount) {
   const n = Math.round(amount)

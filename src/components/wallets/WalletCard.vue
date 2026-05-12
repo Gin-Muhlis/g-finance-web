@@ -1,7 +1,15 @@
 <script setup>
 import { computed } from 'vue'
 
-import { Landmark, Loader2, Pencil, Smartphone, Trash2, Wallet } from 'lucide-vue-next'
+import {
+  ArrowLeftRight,
+  Landmark,
+  Loader2,
+  Pencil,
+  Smartphone,
+  Trash2,
+  Wallet,
+} from 'lucide-vue-next'
 
 import { formatIndonesianRupiah } from '@/utils/formatIndonesianRupiah'
 import { getCategoryIconComponent } from '@/utils/categoryIconMap'
@@ -17,7 +25,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['edit', 'delete', 'requestActiveChange'])
+const emit = defineEmits(['edit', 'transfer', 'delete', 'requestActiveChange'])
 
 function walletTypeDisplayLabel(walletTypeValue) {
   if (walletTypeValue === 'cash') return 'Tunai'
@@ -141,10 +149,10 @@ function onToggleClick() {
       </div>
     </div>
 
-    <div class="mt-4 flex w-full gap-2 justify-end">
+    <div class="mt-4 flex w-full flex-wrap gap-2 justify-end">
       <button
         type="button"
-        class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-border-default bg-ds-black-300/80 px-3 py-2 text-[13px] font-medium text-text-secondary transition-colors hover:border-border-accent-orange hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary sm:flex-none"
+        class="inline-flex min-w-0 flex-1 basis-[calc(33.333%-0.33rem)] items-center justify-center gap-1.5 rounded-[10px] border border-border-default bg-ds-black-300/80 px-3 py-2 text-[13px] font-medium text-text-secondary transition-colors hover:border-border-accent-orange hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary sm:flex-initial"
         :disabled="isActiveToggleBusy()"
         @click="emit('edit', wallet)"
       >
@@ -153,7 +161,16 @@ function onToggleClick() {
       </button>
       <button
         type="button"
-        class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-negative/35 bg-negative/10 px-3 py-2 text-[13px] font-medium text-negative transition-colors hover:bg-negative/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-negative sm:flex-none"
+        class="inline-flex min-w-0 flex-1 basis-[calc(33.333%-0.33rem)] items-center justify-center gap-1.5 rounded-[10px] border border-border-default bg-ds-black-300/80 px-3 py-2 text-[13px] font-medium text-text-secondary transition-colors hover:border-border-accent-orange hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary sm:flex-initial"
+        :disabled="isActiveToggleBusy()"
+        @click="emit('transfer', wallet)"
+      >
+        <ArrowLeftRight :size="15" :stroke-width="2" />
+        <span>Transfer</span>
+      </button>
+      <button
+        type="button"
+        class="inline-flex min-w-0 flex-1 basis-[calc(33.333%-0.33rem)] items-center justify-center gap-1.5 rounded-[10px] border border-negative/35 bg-negative/10 px-3 py-2 text-[13px] font-medium text-negative transition-colors hover:bg-negative/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-negative sm:flex-initial"
         :disabled="isActiveToggleBusy()"
         @click="emit('delete', wallet)"
       >

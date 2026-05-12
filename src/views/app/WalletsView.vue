@@ -5,8 +5,10 @@ import { Loader2, Plus } from 'lucide-vue-next'
 
 import WalletCard from '@/components/wallets/WalletCard.vue'
 import WalletFormModal from '@/components/wallets/WalletFormModal.vue'
+import WalletTransferModal from '@/components/wallets/WalletTransferModal.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { WALLET_TYPE_TABS } from '@/constants/walletTypes'
+import { walletTransfer } from '@/services/transactions'
 import {
   createWallet,
   deleteWallet,
@@ -34,6 +36,13 @@ const walletPendingDeletion = ref(null)
 const isDeleteSubmitting = ref(false)
 
 const activeTogglePendingWalletId = ref(null)
+
+const isTransferModalOpen = ref(false)
+const transferSourceWallet = ref(null)
+const transferDestinationWalletRecords = ref([])
+const isTransferDestinationsLoading = ref(false)
+const isTransferSubmitting = ref(false)
+const transferModalApiError = ref('')
 
 const selectedWalletTypeTab = computed(() =>
   WALLET_TYPE_TABS.find((tabConfig) => tabConfig.id === activeWalletTypeTabId.value)
@@ -168,6 +177,62 @@ async function confirmDeleteWallet() {
   }
 }
 
+async function loadWalletsForTransferPicker() {
+  isTransferDestinationsLoading.value = true
+  transferModalApiError.value = ''
+  try {
+    const { data } = await listWallets({})
+    const records = Array.isArray(data) ? data : (data.data ?? [])
+    transferDestinationWalletRecords.value = records.map((record) => ({
+      ...record,
+      isActive: Boolean(record.isActive),
+    }))
+  } catch (error) {
+    transferModalApiError.value = normalizeUserFacingApiError(
+      error,
+      'Gagal memuat daftar wallet untuk transfer.',
+    )
+    transferDestinationWalletRecords.value = []
+  } finally {
+    isTransferDestinationsLoading.value = false
+  }
+}
+
+function openTransferModal(wallet) {
+  transferModalApiError.value = ''
+  transferSourceWallet.value = { ...wallet }
+  isTransferModalOpen.value = true
+  loadWalletsForTransferPicker()
+}
+
+function closeTransferModal() {
+  if (isTransferSubmitting.value) return
+  isTransferModalOpen.value = false
+  transferSourceWallet.value = null
+  transferModalApiError.value = ''
+}
+
+async function onTransferModalSubmit(payload) {
+  transferModalApiError.value = ''
+  isTransferSubmitting.value = true
+  try {
+    await walletTransfer(payload)
+    toast.success('Transfer wallet berhasil.')
+    isTransferModalOpen.value = false
+    transferSourceWallet.value = null
+    await loadWalletList()
+  } catch (error) {
+    const errorMessage = normalizeUserFacingApiError(
+      error,
+      'Transfer wallet gagal.',
+    )
+    transferModalApiError.value = errorMessage
+    toast.error(errorMessage)
+  } finally {
+    isTransferSubmitting.value = false
+  }
+}
+
 async function handleWalletActiveChange(wallet, requestedIsActive) {
   activeTogglePendingWalletId.value = wallet.id
   try {
@@ -286,6 +351,7 @@ async function handleWalletActiveChange(wallet, requestedIsActive) {
         :wallet="wallet"
         :active-toggle-pending-wallet-id="activeTogglePendingWalletId"
         @edit="openEditWalletModal"
+        @transfer="openTransferModal"
         @delete="requestDeleteWallet"
         @request-active-change="handleWalletActiveChange"
       />
@@ -300,6 +366,17 @@ async function handleWalletActiveChange(wallet, requestedIsActive) {
       :api-error="formModalApiError"
       @close="closeFormModal"
       @submit="onFormModalSubmit"
+    />
+
+    <WalletTransferModal
+      :open="isTransferModalOpen"
+      :from-wallet="transferSourceWallet"
+      :destination-wallets="transferDestinationWalletRecords"
+      :loading-destinations="isTransferDestinationsLoading"
+      :submitting="isTransferSubmitting"
+      :api-error="transferModalApiError"
+      @close="closeTransferModal"
+      @submit="onTransferModalSubmit"
     />
 
     <ConfirmDialog

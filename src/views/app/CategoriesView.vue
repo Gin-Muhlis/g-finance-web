@@ -46,7 +46,6 @@ const currentTab = computed(() =>
 const defaultTypeForModal = computed(() => {
   const currentApiType = currentTab.value?.apiType
   if (currentApiType === 'income') return 'income'
-  if (currentApiType === 'allocation') return 'allocation'
   return 'expense'
 })
 
@@ -203,9 +202,7 @@ function goNext() {
             class="shrink-0 rounded-[10px] border px-4 py-2 text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background-base"
             :class="
               activeTab === tab.id
-                ? tab.id === 'allocation'
-                  ? 'border-border-accent-purple bg-[rgba(138,47,201,0.12)] text-text-primary shadow-glow-purple-ambient'
-                  : 'border-border-accent-orange bg-[rgba(255,80,0,0.12)] text-text-primary shadow-card-orange-active'
+                ? 'border-border-accent-orange bg-[rgba(255,80,0,0.12)] text-text-primary shadow-card-orange-active'
                 : 'border-border-default bg-ds-black-400/70 text-text-secondary hover:border-white/12 hover:bg-ds-black-400 hover:text-text-primary'
             "
             @click="activeTab = tab.id"

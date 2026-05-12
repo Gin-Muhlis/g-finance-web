@@ -62,6 +62,12 @@ const router = createRouter({
           meta: { title: 'Kelola budget' },
         },
         {
+          path: 'allocations',
+          name: 'app-allocations',
+          component: () => import('@/views/app/AllocationView.vue'),
+          meta: { title: 'Kelola alokasi' },
+        },
+        {
           path: 'profile',
           name: 'app-profile',
           component: () => import('@/views/app/ProfileView.vue'),

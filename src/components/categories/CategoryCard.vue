@@ -15,8 +15,7 @@ const emit = defineEmits(['edit', 'delete'])
 function categoryTypeDisplayLabel(categoryTypeValue) {
   if (categoryTypeValue === 'income') return 'Pemasukan'
   if (categoryTypeValue === 'expense') return 'Pengeluaran'
-  if (categoryTypeValue === 'allocation') return 'Alokasi'
-  return categoryTypeValue
+  return '—'
 }
 </script>
 
