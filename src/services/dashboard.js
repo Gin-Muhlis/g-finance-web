@@ -70,6 +70,24 @@ function flattenTransactionsByDay(responseData) {
   )
 }
 
+function toIsoDate(value) {
+  if (typeof value === 'string' && value) return value.slice(0, 10)
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return [
+      value.getFullYear(),
+      String(value.getMonth() + 1).padStart(2, '0'),
+      String(value.getDate()).padStart(2, '0'),
+    ].join('-')
+  }
+  return ''
+}
+
+function resolveTransactionRangeParams(range) {
+  const startDate = range?.fromIso || toIsoDate(range?.start)
+  const endDate = range?.toIso || toIsoDate(range?.end)
+  return { startDate, endDate }
+}
+
 export async function getDashboardBaseData() {
   const today = new Date()
   const year = today.getFullYear()
@@ -105,10 +123,7 @@ export async function getDashboardBaseData() {
 }
 
 export async function getDashboardTransactions(range) {
-  const response = await listTransactions({
-    startDate: range.fromIso,
-    endDate: range.toIso,
-  })
+  const response = await listTransactions(resolveTransactionRangeParams(range))
   return flattenTransactionsByDay(response.data)
 }
 
