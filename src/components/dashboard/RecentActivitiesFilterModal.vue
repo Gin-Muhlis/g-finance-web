@@ -35,6 +35,7 @@ const draftType = ref('')
 const categoryOptions = computed(() =>
   props.categories
     .filter((c) => c.type === 'income' || c.type === 'expense')
+    .filter(() => draftType.value !== 'transfer')
     .filter((c) => !draftType.value || c.type === draftType.value)
     .sort((a, b) => String(a.name).localeCompare(b.name, 'id')),
 )
@@ -54,6 +55,10 @@ watch(
 )
 
 watch(draftType, (type) => {
+  if (type === 'transfer') {
+    draftCategoryId.value = ''
+    return
+  }
   if (!type || !draftCategoryId.value) return
   const cat = categoryById.value[draftCategoryId.value]
   if (cat && cat.type !== type) draftCategoryId.value = ''
@@ -165,6 +170,9 @@ function onReset() {
                 <option value="expense">
                   Expense
                 </option>
+                <option value="transfer">
+                  Transfer
+                </option>
               </select>
             </div>
 
@@ -203,7 +211,9 @@ function onReset() {
               <select
                 id="recent-filter-category"
                 v-model="draftCategoryId"
+                :disabled="draftType === 'transfer'"
                 class="w-full appearance-none rounded-input border border-border-default bg-ds-black-400/80 px-3.5 py-2.5 text-[14px] text-text-primary shadow-inner outline-none focus:border-border-accent-orange focus:shadow-input-focus"
+                :class="{ 'cursor-not-allowed opacity-60': draftType === 'transfer' }"
               >
                 <option value="">
                   Semua kategori

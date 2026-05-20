@@ -12,6 +12,18 @@ export function listTransactions(params) {
   return api.get('/api/transactions', { params })
 }
 
+/**
+ * @param {object} [params]
+ * @param {('income'|'expense'|'transfer')} [params.type]
+ * @param {string} [params.walletId]
+ * @param {string} [params.categoryId]
+ * @param {string} [params.search]
+ * @param {number} [params.limit]
+ */
+export function listRecentTransactions(params = {}) {
+  return api.get('/api/transactions/recent', { params })
+}
+
 export function createTransaction(body) {
   return api.post('/api/transactions', body)
 }

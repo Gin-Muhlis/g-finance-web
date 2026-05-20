@@ -37,7 +37,14 @@ const filteredRows = computed(() => {
   return props.transactions
     .filter((t) => {
       if (filterCategoryId.value && t.categoryId !== filterCategoryId.value) return false
-      if (filterWalletId.value && t.walletId !== filterWalletId.value) return false
+      if (
+        filterWalletId.value &&
+        t.walletId !== filterWalletId.value &&
+        t.fromWalletId !== filterWalletId.value &&
+        t.toWalletId !== filterWalletId.value
+      ) {
+        return false
+      }
       if (filterType.value && t.type !== filterType.value) return false
       if (q) {
         const cat = categoryById.value[t.categoryId]
@@ -47,6 +54,8 @@ const filteredRows = computed(() => {
           t.description ?? '',
           cat?.name ?? '',
           wallet?.name ?? '',
+          t.fromWallet?.name ?? '',
+          t.toWallet?.name ?? '',
         ]
           .join(' ')
           .toLowerCase()
@@ -90,13 +99,40 @@ function onFilterReset() {
 }
 
 function formatDateDisplay(iso) {
-  const [y, m, d] = iso.split('-')
+  const [y, m, d] = String(iso || '').split('-')
   return `${d}/${m}/${y}`
 }
 
 function shortTxId(id) {
   const tail = String(id).slice(-6).toUpperCase()
   return `INV-${tail}`
+}
+
+function activityLabel(row) {
+  if (row.description) return row.description
+  if (row.type === 'transfer') return 'Transfer wallet'
+  return row.type === 'income' ? 'Income' : 'Expense'
+}
+
+function walletLabel(row) {
+  if (row.type === 'transfer') {
+    const fromName = row.fromWallet?.name ?? walletById.value[row.fromWalletId]?.name ?? 'Wallet'
+    const toName = row.toWallet?.name ?? walletById.value[row.toWalletId]?.name ?? 'Wallet'
+    return `${fromName} → ${toName}`
+  }
+  return walletById.value[row.walletId]?.name || row.walletName || '—'
+}
+
+function amountPrefix(row) {
+  if (row.type === 'income') return '+'
+  if (row.type === 'expense') return '−'
+  return ''
+}
+
+function amountClass(row) {
+  if (row.type === 'income') return 'text-positive'
+  if (row.type === 'expense') return 'text-negative'
+  return 'text-cyan-400'
 }
 </script>
 
@@ -179,7 +215,7 @@ function shortTxId(id) {
             </td>
             <td class="max-w-[140px] px-3 py-3 text-text-primary sm:max-w-[180px]">
               <p class="truncate text-[13px] font-medium">
-                {{ row.description }}
+                {{ activityLabel(row) }}
               </p>
             </td>
             <td class="hidden px-3 py-3 md:table-cell">
@@ -216,17 +252,16 @@ function shortTxId(id) {
                   />
                 </span>
                 <span class="max-w-[90px] truncate text-[12.5px] text-text-secondary">
-                  {{ walletById[row.walletId]?.name || '—' }}
+                  {{ walletLabel(row) }}
                 </span>
               </div>
             </td>
             <td class="whitespace-nowrap px-3 py-3 text-right">
               <p
                 class="font-mono text-[13px] font-semibold tabular-nums"
-                :class="row.type === 'income' ? 'text-positive' : 'text-negative'"
+                :class="amountClass(row)"
               >
-                {{ row.type === 'income' ? '+' : '−'
-                }}{{ formatIndonesianRupiah(row.amount) }}
+                {{ amountPrefix(row) }}{{ formatIndonesianRupiah(row.amount) }}
               </p>
             </td>
             <td class="whitespace-nowrap px-3 py-3 pr-5 text-right text-[12px] text-text-tertiary sm:pr-6">
