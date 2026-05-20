@@ -38,6 +38,7 @@ const allocations = ref([]);
 const recentTransactions = ref([]);
 const currentTransactions = ref([]);
 const previousTransactions = ref([]);
+const recentTransactionFilters = ref({});
 
 const currentRange = computed(() =>
   resolvePeriodRange(periodId.value, {
@@ -114,6 +115,16 @@ async function loadCashflowData() {
       error?.response?.data?.message || 'Gagal memuat data cashflow dashboard.';
   } finally {
     isCashflowLoading.value = false;
+  }
+}
+
+async function loadRecentTransactions(filters = recentTransactionFilters.value) {
+  try {
+    recentTransactionFilters.value = filters;
+    recentTransactions.value = await getDashboardRecentTransactions(filters);
+  } catch (error) {
+    errorMessage.value =
+      error?.response?.data?.message || 'Gagal memuat transaksi terbaru dashboard.';
   }
 }
 
@@ -266,6 +277,7 @@ onMounted(() => {
           :transactions="recentTransactions"
           :wallets="wallets"
           :categories="categories"
+          @filters-change="loadRecentTransactions"
         />
       </div>
     </div>

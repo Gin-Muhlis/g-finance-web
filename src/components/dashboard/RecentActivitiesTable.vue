@@ -12,6 +12,7 @@ const props = defineProps({
   wallets: { type: Array, required: true },
   categories: { type: Array, required: true },
 })
+const emit = defineEmits(['filters-change'])
 
 const filterModalOpen = ref(false)
 
@@ -88,6 +89,12 @@ function onFilterApply({ search, walletId, categoryId, type }) {
   filterCategoryId.value = categoryId ?? ''
   filterType.value = type ?? ''
   filterModalOpen.value = false
+  emit('filters-change', {
+    search: searchQuery.value,
+    walletId: filterWalletId.value,
+    categoryId: filterCategoryId.value,
+    type: filterType.value,
+  })
 }
 
 function onFilterReset() {
@@ -96,6 +103,7 @@ function onFilterReset() {
   filterWalletId.value = ''
   filterType.value = ''
   filterModalOpen.value = false
+  emit('filters-change', {})
 }
 
 function formatDateDisplay(iso) {

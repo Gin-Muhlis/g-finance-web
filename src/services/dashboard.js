@@ -2,7 +2,8 @@ import { getAllocationSummary, listAllocations } from '@/services/allocations'
 import { getBudgetSummary } from '@/services/budgets'
 import { listBuckets } from '@/services/buckets'
 import { listCategories } from '@/services/categories'
-import { listRecentTransactions, listTransactions } from '@/services/transactions'
+import api from '@/services/api'
+import { listTransactions } from '@/services/transactions'
 import { listWallets } from '@/services/wallets'
 
 const walletTypeLabels = {
@@ -111,7 +112,12 @@ export async function getDashboardTransactions(range) {
   return flattenTransactionsByDay(response.data)
 }
 
-export async function getDashboardRecentTransactions() {
-  const response = await listRecentTransactions({ limit: 100 })
+export async function getDashboardRecentTransactions(params = {}) {
+  const response = await api.get('/api/dashboard/recent-transactions', {
+    params: {
+      ...params,
+      limit: params.limit ?? 5,
+    },
+  })
   return (response.data ?? []).map((transaction) => normalizeTransaction(transaction))
 }
