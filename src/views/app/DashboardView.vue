@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 import AllocationBucketsCard from '@/components/dashboard/AllocationBucketsCard.vue';
 import BudgetUsageCard from '@/components/dashboard/BudgetUsageCard.vue';
@@ -9,20 +9,17 @@ import RecentActivitiesTable from '@/components/dashboard/RecentActivitiesTable.
 import SummaryCard from '@/components/dashboard/SummaryCard.vue';
 import TotalBalanceCard from '@/components/dashboard/TotalBalanceCard.vue';
 import {
-  DASHBOARD_BUCKETS,
-  DASHBOARD_BUDGET,
-  DASHBOARD_CATEGORIES,
-  DASHBOARD_SAVING_CONTRIBUTIONS,
-  DASHBOARD_TRANSACTIONS,
-  DASHBOARD_USER,
-  DASHBOARD_WALLETS,
   buildDailySeries,
   filterSavingByRange,
-  filterTransactionsByRange,
   resolvePeriodRange,
   resolvePreviousPeriodRange,
   sumIncomeExpense,
 } from '@/data/dashboardDummyData';
+import {
+  getDashboardBaseData,
+  getDashboardRecentTransactions,
+  getDashboardTransactions,
+} from '@/services/dashboard';
 import { useAuthStore } from '@/stores/auth';
 
 const auth = useAuthStore();
@@ -30,6 +27,17 @@ const auth = useAuthStore();
 const periodId = ref('today');
 const customFromDate = ref('');
 const customToDate = ref('');
+const isLoading = ref(true);
+const isCashflowLoading = ref(false);
+const errorMessage = ref('');
+const wallets = ref([]);
+const categories = ref([]);
+const budget = ref({ totalBudget: 0, totalUsed: 0 });
+const buckets = ref([]);
+const allocations = ref([]);
+const recentTransactions = ref([]);
+const currentTransactions = ref([]);
+const previousTransactions = ref([]);
 
 const currentRange = computed(() =>
   resolvePeriodRange(periodId.value, {
@@ -42,13 +50,6 @@ const previousRange = computed(() =>
   resolvePreviousPeriodRange(currentRange.value),
 );
 
-const currentTransactions = computed(() =>
-  filterTransactionsByRange(DASHBOARD_TRANSACTIONS, currentRange.value),
-);
-const previousTransactions = computed(() =>
-  filterTransactionsByRange(DASHBOARD_TRANSACTIONS, previousRange.value),
-);
-
 const currentTotals = computed(() =>
   sumIncomeExpense(currentTransactions.value),
 );
@@ -58,13 +59,13 @@ const previousTotals = computed(() =>
 
 const currentSavingTotal = computed(() =>
   filterSavingByRange(
-    DASHBOARD_SAVING_CONTRIBUTIONS,
+    allocations.value.filter((item) => !item.isAllocationWithdraw),
     currentRange.value,
   ).reduce((acc, item) => acc + item.amount, 0),
 );
 const previousSavingTotal = computed(() =>
   filterSavingByRange(
-    DASHBOARD_SAVING_CONTRIBUTIONS,
+    allocations.value.filter((item) => !item.isAllocationWithdraw),
     previousRange.value,
   ).reduce((acc, item) => acc + item.amount, 0),
 );
@@ -83,7 +84,7 @@ const greetingLabel = computed(() => {
 
 const displayName = computed(() => {
   const fromAuth = auth.user?.name?.split(/\s+/)[0];
-  return fromAuth || DASHBOARD_USER.name.split(/\s+/)[0];
+  return fromAuth || 'G-Finance';
 });
 
 const monthLabel = computed(() => {
@@ -92,11 +93,59 @@ const monthLabel = computed(() => {
 });
 
 const previousTotalBalance = computed(() => {
-  const totalNow = DASHBOARD_WALLETS.reduce(
+  const totalNow = wallets.value.reduce(
     (acc, w) => acc + Number(w.balance || 0),
     0,
   );
   return totalNow - (currentTotals.value.net - previousTotals.value.net);
+});
+
+async function loadCashflowData() {
+  isCashflowLoading.value = true;
+  try {
+    const [currentRows, previousRows] = await Promise.all([
+      getDashboardTransactions(currentRange.value),
+      getDashboardTransactions(previousRange.value),
+    ]);
+    currentTransactions.value = currentRows;
+    previousTransactions.value = previousRows;
+  } catch (error) {
+    errorMessage.value =
+      error?.response?.data?.message || 'Gagal memuat data cashflow dashboard.';
+  } finally {
+    isCashflowLoading.value = false;
+  }
+}
+
+async function loadDashboard() {
+  isLoading.value = true;
+  errorMessage.value = '';
+  try {
+    const [baseData, recentRows] = await Promise.all([
+      getDashboardBaseData(),
+      getDashboardRecentTransactions(),
+    ]);
+    wallets.value = baseData.wallets;
+    categories.value = baseData.categories;
+    budget.value = baseData.budget;
+    buckets.value = baseData.buckets;
+    allocations.value = baseData.allocations;
+    recentTransactions.value = recentRows;
+    await loadCashflowData();
+  } catch (error) {
+    errorMessage.value =
+      error?.response?.data?.message || 'Gagal memuat data dashboard.';
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+watch([periodId, customFromDate, customToDate], () => {
+  if (!isLoading.value) loadCashflowData();
+});
+
+onMounted(() => {
+  loadDashboard();
 });
 </script>
 
@@ -109,19 +158,26 @@ const previousTotalBalance = computed(() => {
         {{ greetingLabel }}, {{ displayName }} 👋
       </h2>
       <p class="mt-1.5 text-[13px] text-text-secondary sm:text-[14px]">
-        {{ DASHBOARD_USER.greetingSubtitle }}
+        Pantau cashflow, anggaran, dan tabungan kamu dalam satu tempat.
       </p>
+    </section>
+
+    <section
+      v-if="errorMessage"
+      class="rounded-[14px] border border-negative/25 bg-negative/10 px-4 py-3 text-[13px] text-negative"
+    >
+      {{ errorMessage }}
     </section>
 
     <!-- Row 1: Total balance | Budget usage -->
     <section class="grid gap-4 lg:grid-cols-2 lg:items-stretch">
       <TotalBalanceCard
-        :wallets="DASHBOARD_WALLETS"
+        :wallets="wallets"
         :previous-total-balance="previousTotalBalance"
       />
       <BudgetUsageCard
-        :total-budget="DASHBOARD_BUDGET.totalBudget"
-        :total-used="DASHBOARD_BUDGET.totalUsed"
+        :total-budget="budget.totalBudget"
+        :total-used="budget.totalUsed"
         :month-label="monthLabel"
       />
     </section>
@@ -193,7 +249,7 @@ const previousTotalBalance = computed(() => {
         <div class="min-w-0 xl:col-span-7">
           <IncomeExpenseChart
             :series="chartSeries"
-            :period-label="currentRange.label"
+            :period-label="isCashflowLoading ? 'Loading...' : currentRange.label"
             embedded
           />
         </div>
@@ -203,13 +259,13 @@ const previousTotalBalance = computed(() => {
     <!-- Row 3: Allocation buckets | Recent activities -->
     <div class="grid gap-4 xl:grid-cols-12 xl:items-stretch">
       <div class="xl:col-span-5">
-        <AllocationBucketsCard :buckets="DASHBOARD_BUCKETS" />
+        <AllocationBucketsCard :buckets="buckets" />
       </div>
       <div class="min-w-0 xl:col-span-7">
         <RecentActivitiesTable
-          :transactions="DASHBOARD_TRANSACTIONS"
-          :wallets="DASHBOARD_WALLETS"
-          :categories="DASHBOARD_CATEGORIES"
+          :transactions="recentTransactions"
+          :wallets="wallets"
+          :categories="categories"
         />
       </div>
     </div>
