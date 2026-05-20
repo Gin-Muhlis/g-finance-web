@@ -8,7 +8,15 @@ const props = defineProps({
   /** Array<{ date: 'YYYY-MM-DD', income: number, expense: number }> */
   series: { type: Array, default: () => [] },
   periodLabel: { type: String, default: '' },
+  /** Tanpa border/card sendiri — dipakai di dalam section gabungan dashboard */
+  embedded: { type: Boolean, default: false },
 })
+
+const rootClass = computed(() =>
+  props.embedded
+    ? 'flex h-full min-w-0 flex-col'
+    : 'rounded-[18px] border border-white/[0.08] bg-ds-black-300/85 p-5 shadow-card-elevated backdrop-blur-md sm:p-6',
+)
 
 const VIEW_W = 880
 const VIEW_H = 260
@@ -174,9 +182,7 @@ const netIsPositive = computed(() => totals.value.net >= 0)
 </script>
 
 <template>
-  <section
-    class="rounded-[18px] border border-white/[0.08] bg-ds-black-300/85 p-5 shadow-card-elevated backdrop-blur-md sm:p-6"
-  >
+  <section :class="rootClass">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
         <p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-text-tertiary">

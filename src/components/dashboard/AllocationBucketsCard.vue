@@ -58,42 +58,20 @@ const tierGradient = {
           Allocation
         </p>
         <h3 class="mt-0.5 text-[17px] font-semibold text-text-primary">
-          Allocation Buckets
+          Alokasi Tabungan
         </h3>
-        <p class="mt-0.5 text-[12px] text-text-tertiary">
-          Tabungan & dana tujuan kamu
-        </p>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <button
-          type="button"
-          class="inline-flex items-center gap-1.5 rounded-[10px] border border-white/[0.1] bg-white/[0.04] px-3 py-1.5 text-[12px] font-medium text-text-secondary transition-colors hover:border-white/15 hover:bg-white/[0.08] hover:text-text-primary"
-        >
-          <Settings2
-            :size="13"
-            :stroke-width="2"
-          />
-          Manage Bucket
-        </button>
-        <button
-          type="button"
-          class="inline-flex items-center gap-1.5 rounded-[10px] bg-gradient-to-br from-ds-orange-100 to-ds-orange-300 px-3 py-1.5 text-[12px] font-semibold text-white shadow-button-orange transition-opacity hover:opacity-95"
-        >
-          <Plus
-            :size="13"
-            :stroke-width="2.5"
-          />
-          Add Allocation
-        </button>
       </div>
     </header>
 
-    <ul class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <li
-        v-for="bucket in enrichedBuckets"
-        :key="bucket.id"
-        class="group rounded-[14px] border border-white/[0.06] bg-ds-black-400/60 p-3.5 transition-colors hover:border-white/[0.14] hover:bg-ds-black-500/70"
-      >
+    <div
+      class="mt-4 min-h-0 overflow-y-auto overscroll-y-contain pr-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] max-h-[calc(4*(9.875rem+1.25rem)-1.25rem)] sm:max-h-[calc(2*(9.875rem+1.25rem)-1.25rem)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent"
+    >
+      <ul class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <li
+          v-for="bucket in enrichedBuckets"
+          :key="bucket.id"
+          class="group min-h-[9.875rem] rounded-[14px] border border-white/[0.06] bg-ds-black-400/60 p-3.5 transition-colors hover:border-white/[0.14] hover:bg-ds-black-500/70"
+        >
         <div class="flex items-start gap-3">
           <span
             class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-white/[0.08]"
@@ -120,9 +98,6 @@ const tierGradient = {
                 {{ bucket.percentDisplay }}%
               </span>
             </div>
-            <p class="mt-0.5 text-[11px] uppercase tracking-[0.06em] text-text-tertiary">
-              Saldo saat ini
-            </p>
             <p
               class="font-mono text-[15px] font-bold leading-tight tabular-nums text-text-primary"
             >
@@ -152,18 +127,9 @@ const tierGradient = {
               formatIndonesianRupiah(bucket.remaining)
             }}</span>
           </span>
-          <button
-            type="button"
-            class="inline-flex items-center gap-1 text-[11.5px] font-medium text-accent-primary hover:underline"
-          >
-            Top up
-            <ArrowUpRight
-              :size="12"
-              :stroke-width="2.5"
-            />
-          </button>
         </div>
-      </li>
-    </ul>
+        </li>
+      </ul>
+    </div>
   </section>
 </template>

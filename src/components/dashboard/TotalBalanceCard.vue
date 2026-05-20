@@ -31,7 +31,7 @@ const formattedChange = computed(() => {
 
 <template>
   <section
-    class="relative flex h-full flex-col overflow-hidden rounded-[18px] border border-white/[0.08] bg-gradient-to-br from-ds-black-300/95 to-ds-black-400/90 p-5 shadow-card-elevated backdrop-blur-md sm:p-6"
+    class="relative flex h-full min-w-0 flex-col overflow-hidden rounded-[18px] border border-white/[0.08] bg-gradient-to-br from-ds-black-300/95 to-ds-black-400/90 p-5 shadow-card-elevated backdrop-blur-md sm:p-6"
   >
     <div
       class="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[radial-gradient(circle,rgba(255,80,0,0.35)_0%,transparent_70%)] blur-2xl"
@@ -47,21 +47,6 @@ const formattedChange = computed(() => {
           Akumulasi saldo dari {{ wallets.length }} wallet
         </p>
       </div>
-      <span
-        class="inline-flex shrink-0 items-center gap-1 rounded-[8px] border px-2 py-1 text-[11.5px] font-semibold tabular-nums"
-        :class="
-          isPositive
-            ? 'border-positive/30 bg-positive/12 text-positive'
-            : 'border-negative/30 bg-negative/12 text-negative'
-        "
-      >
-        <component
-          :is="isPositive ? ArrowUpRight : ArrowDownRight"
-          :size="13"
-          :stroke-width="2.5"
-        />
-        {{ formattedChange }}
-      </span>
     </header>
 
     <div class="relative mt-4">
@@ -75,8 +60,8 @@ const formattedChange = computed(() => {
       </p>
     </div>
 
-    <div class="relative mt-5 flex items-center justify-between">
-      <div>
+    <div class="relative mt-5 flex items-center justify-between gap-3">
+      <div class="min-w-0">
         <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
           Wallets
         </p>
@@ -84,53 +69,51 @@ const formattedChange = computed(() => {
           Total {{ wallets.length }} sumber dana
         </p>
       </div>
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 rounded-[10px] border border-white/[0.1] bg-white/[0.04] px-3 py-1.5 text-[12px] font-medium text-text-secondary transition-colors hover:border-border-accent-orange/60 hover:bg-[rgba(255,80,0,0.08)] hover:text-text-primary"
-      >
-        <Plus
-          :size="13"
-          :stroke-width="2.5"
-        />
-        Add wallet
-      </button>
     </div>
 
-    <div class="relative mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
-      <article
-        v-for="wallet in wallets"
-        :key="wallet.id"
-        class="group relative overflow-hidden rounded-[12px] border border-white/[0.06] bg-ds-black-400/70 px-3 py-3 transition-colors hover:border-white/[0.14] hover:bg-ds-black-500/80"
+    <div
+      class="relative mt-3 min-w-0"
+      role="region"
+      aria-label="Daftar wallet"
+    >
+      <div
+        class="flex snap-x snap-mandatory gap-2.5 overflow-x-auto overscroll-x-contain pb-1 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent"
       >
-        <div class="flex items-center gap-2.5">
-          <span
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-white/[0.08]"
-            :style="{
-              backgroundColor: `${wallet.color}1F`,
-              boxShadow: `0 0 0 1px ${wallet.color}33`,
-            }"
-          >
-            <CategoryIcon
-              :icon-name="wallet.icon"
-              :color="wallet.color"
-              :size="18"
-            />
-          </span>
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-[13px] font-semibold text-text-primary">
-              {{ wallet.name }}
-            </p>
-            <p class="truncate text-[10.5px] uppercase tracking-[0.06em] text-text-tertiary">
-              {{ wallet.typeLabel }}
-            </p>
-          </div>
-        </div>
-        <p
-          class="mt-2.5 font-mono text-[14.5px] font-semibold tabular-nums text-text-primary"
+        <article
+          v-for="(wallet, index) in wallets"
+          :key="`${wallet.id}-${index}`"
+          class="group relative w-[168px] shrink-0 snap-start overflow-hidden rounded-[12px] border border-white/[0.06] bg-ds-black-400/70 px-3 py-3 transition-colors hover:border-white/[0.14] hover:bg-ds-black-500/80 sm:w-[176px]"
         >
-          {{ formatIndonesianRupiah(wallet.balance) }}
-        </p>
-      </article>
+          <div class="flex items-center gap-2.5">
+            <span
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-white/[0.08]"
+              :style="{
+                backgroundColor: `${wallet.color}1F`,
+                boxShadow: `0 0 0 1px ${wallet.color}33`,
+              }"
+            >
+              <CategoryIcon
+                :icon-name="wallet.icon"
+                :color="wallet.color"
+                :size="18"
+              />
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-[13px] font-semibold text-text-primary">
+                {{ wallet.name }}
+              </p>
+              <p class="truncate text-[10.5px] uppercase tracking-[0.06em] text-text-tertiary">
+                {{ wallet.typeLabel }}
+              </p>
+            </div>
+          </div>
+          <p
+            class="mt-2.5 truncate font-mono text-[14.5px] font-semibold tabular-nums text-text-primary"
+          >
+            {{ formatIndonesianRupiah(wallet.balance) }}
+          </p>
+        </article>
+      </div>
     </div>
   </section>
 </template>

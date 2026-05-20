@@ -1,9 +1,10 @@
 <script setup>
 import { computed, ref } from 'vue'
 
-import { Filter, Search, X } from 'lucide-vue-next'
+import { Filter, ListFilter } from 'lucide-vue-next'
 
 import CategoryIcon from '@/components/categories/CategoryIcon.vue'
+import RecentActivitiesFilterModal from '@/components/dashboard/RecentActivitiesFilterModal.vue'
 import { formatIndonesianRupiah } from '@/utils/formatIndonesianRupiah'
 
 const props = defineProps({
@@ -12,11 +13,12 @@ const props = defineProps({
   categories: { type: Array, required: true },
 })
 
+const filterModalOpen = ref(false)
+
 const searchQuery = ref('')
 const filterCategoryId = ref('')
 const filterWalletId = ref('')
 const filterType = ref('')
-const filterDate = ref('')
 
 const walletById = computed(() => {
   const map = {}
@@ -37,7 +39,6 @@ const filteredRows = computed(() => {
       if (filterCategoryId.value && t.categoryId !== filterCategoryId.value) return false
       if (filterWalletId.value && t.walletId !== filterWalletId.value) return false
       if (filterType.value && t.type !== filterType.value) return false
-      if (filterDate.value && t.date !== filterDate.value) return false
       if (q) {
         const cat = categoryById.value[t.categoryId]
         const wallet = walletById.value[t.walletId]
@@ -56,21 +57,36 @@ const filteredRows = computed(() => {
     .slice(0, 5)
 })
 
-const hasFilters = computed(
+const hasActiveFilters = computed(
   () =>
     !!searchQuery.value ||
     !!filterCategoryId.value ||
     !!filterWalletId.value ||
-    !!filterType.value ||
-    !!filterDate.value,
+    !!filterType.value,
 )
 
-function resetFilters() {
+function openFilterModal() {
+  filterModalOpen.value = true
+}
+
+function closeFilterModal() {
+  filterModalOpen.value = false
+}
+
+function onFilterApply({ search, walletId, categoryId, type }) {
+  searchQuery.value = search ?? ''
+  filterWalletId.value = walletId ?? ''
+  filterCategoryId.value = categoryId ?? ''
+  filterType.value = type ?? ''
+  filterModalOpen.value = false
+}
+
+function onFilterReset() {
   searchQuery.value = ''
   filterCategoryId.value = ''
   filterWalletId.value = ''
   filterType.value = ''
-  filterDate.value = ''
+  filterModalOpen.value = false
 }
 
 function formatDateDisplay(iso) {
@@ -86,12 +102,12 @@ function shortTxId(id) {
 
 <template>
   <section
-    class="overflow-hidden rounded-[18px] border border-white/[0.08] bg-ds-black-300/85 shadow-card-elevated backdrop-blur-md"
+    class="flex h-full min-w-0 flex-col overflow-hidden rounded-[18px] border border-white/[0.08] bg-ds-black-300/85 shadow-card-elevated backdrop-blur-md"
   >
     <header
-      class="flex flex-col gap-3 border-b border-white/[0.06] px-5 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between"
+      class="flex shrink-0 items-start justify-between gap-3 border-b border-white/[0.06] p-5 sm:p-6"
     >
-      <div>
+      <div class="min-w-0">
         <p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-text-tertiary">
           Recent Activities
         </p>
@@ -100,94 +116,33 @@ function shortTxId(id) {
         </h3>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <div
-          class="inline-flex h-9 items-center gap-2 rounded-[10px] border border-white/[0.08] bg-white/[0.04] px-3 transition-colors focus-within:border-accent-primary/60"
-        >
-          <Search
-            :size="14"
-            :stroke-width="2"
-            class="text-text-tertiary"
-          />
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Cari transaksi..."
-            class="w-[160px] bg-transparent text-[12.5px] text-text-primary placeholder:text-text-tertiary focus:outline-none sm:w-[200px]"
-          >
-        </div>
-
-        <select
-          v-model="filterCategoryId"
-          class="h-9 rounded-[10px] border border-white/[0.08] bg-white/[0.04] px-2.5 text-[12px] text-text-secondary transition-colors hover:border-white/15 focus:border-accent-primary/60 focus:outline-none"
-        >
-          <option value="">
-            Semua kategori
-          </option>
-          <option
-            v-for="cat in categories"
-            :key="cat.id"
-            :value="cat.id"
-          >
-            {{ cat.name }}
-          </option>
-        </select>
-
-        <select
-          v-model="filterWalletId"
-          class="h-9 rounded-[10px] border border-white/[0.08] bg-white/[0.04] px-2.5 text-[12px] text-text-secondary transition-colors hover:border-white/15 focus:border-accent-primary/60 focus:outline-none"
-        >
-          <option value="">
-            Semua wallet
-          </option>
-          <option
-            v-for="w in wallets"
-            :key="w.id"
-            :value="w.id"
-          >
-            {{ w.name }}
-          </option>
-        </select>
-
-        <select
-          v-model="filterType"
-          class="h-9 rounded-[10px] border border-white/[0.08] bg-white/[0.04] px-2.5 text-[12px] text-text-secondary transition-colors hover:border-white/15 focus:border-accent-primary/60 focus:outline-none"
-        >
-          <option value="">
-            Semua tipe
-          </option>
-          <option value="income">
-            Income
-          </option>
-          <option value="expense">
-            Expense
-          </option>
-        </select>
-
-        <input
-          v-model="filterDate"
-          type="date"
-          class="h-9 rounded-[10px] border border-white/[0.08] bg-white/[0.04] px-2.5 text-[12px] text-text-secondary transition-colors hover:border-white/15 focus:border-accent-primary/60 focus:outline-none"
-        >
-
-        <button
-          v-if="hasFilters"
-          type="button"
-          class="inline-flex h-9 items-center gap-1 rounded-[10px] border border-negative/30 bg-negative/8 px-2.5 text-[12px] font-medium text-negative transition-colors hover:bg-negative/15"
-          @click="resetFilters"
-        >
-          <X
-            :size="12"
-            :stroke-width="2.5"
-          />
-          Reset
-        </button>
-      </div>
+      <button
+        type="button"
+        class="relative inline-flex h-9 shrink-0 items-center gap-2 rounded-[10px] border border-white/[0.08] bg-white/[0.04] px-3 text-[12.5px] font-medium text-text-secondary transition-colors hover:border-border-accent-orange/50 hover:bg-white/[0.08] hover:text-text-primary"
+        :class="
+          hasActiveFilters
+            ? 'border-border-accent-orange/40 text-accent-primary'
+            : ''
+        "
+        aria-label="Buka filter aktivitas"
+        @click="openFilterModal"
+      >
+        <ListFilter
+          :size="15"
+          :stroke-width="2"
+        />
+        <span class="hidden sm:inline">Filter</span>
+        <span
+          v-if="hasActiveFilters"
+          class="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent-primary shadow-[0_0_6px_rgba(255,80,0,0.7)]"
+          aria-hidden="true"
+        />
+      </button>
     </header>
 
-    <div class="overflow-x-auto">
+    <div class="min-h-0 flex-1 overflow-x-auto overflow-y-auto">
       <table class="min-w-full text-left text-[13px]">
-        <thead class="bg-ds-black-400/40">
+        <thead class="sticky top-0 z-[1] bg-ds-black-400/95 backdrop-blur-sm">
           <tr>
             <th
               class="px-5 py-3 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-tertiary sm:px-6"
@@ -197,17 +152,14 @@ function shortTxId(id) {
             <th class="px-3 py-3 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
               Activity
             </th>
-            <th class="px-3 py-3 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
+            <th class="hidden px-3 py-3 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-tertiary md:table-cell">
               Category
             </th>
-            <th class="px-3 py-3 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
+            <th class="hidden px-3 py-3 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-tertiary lg:table-cell">
               Wallet
             </th>
             <th class="px-3 py-3 text-right text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
               Amount
-            </th>
-            <th class="px-3 py-3 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
-              Status
             </th>
             <th class="px-3 py-3 pr-5 text-right text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-tertiary sm:pr-6">
               Date
@@ -225,12 +177,12 @@ function shortTxId(id) {
             >
               {{ shortTxId(row.id) }}
             </td>
-            <td class="px-3 py-3 text-text-primary">
+            <td class="max-w-[140px] px-3 py-3 text-text-primary sm:max-w-[180px]">
               <p class="truncate text-[13px] font-medium">
                 {{ row.description }}
               </p>
             </td>
-            <td class="px-3 py-3">
+            <td class="hidden px-3 py-3 md:table-cell">
               <div class="flex items-center gap-2">
                 <span
                   class="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] border border-white/[0.06]"
@@ -244,12 +196,12 @@ function shortTxId(id) {
                     :size="14"
                   />
                 </span>
-                <span class="truncate text-[12.5px] text-text-secondary">
+                <span class="max-w-[100px] truncate text-[12.5px] text-text-secondary">
                   {{ categoryById[row.categoryId]?.name || '—' }}
                 </span>
               </div>
             </td>
-            <td class="px-3 py-3">
+            <td class="hidden px-3 py-3 lg:table-cell">
               <div class="flex items-center gap-2">
                 <span
                   class="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] border border-white/[0.06]"
@@ -263,12 +215,12 @@ function shortTxId(id) {
                     :size="14"
                   />
                 </span>
-                <span class="truncate text-[12.5px] text-text-secondary">
+                <span class="max-w-[90px] truncate text-[12.5px] text-text-secondary">
                   {{ walletById[row.walletId]?.name || '—' }}
                 </span>
               </div>
             </td>
-            <td class="px-3 py-3 text-right">
+            <td class="whitespace-nowrap px-3 py-3 text-right">
               <p
                 class="font-mono text-[13px] font-semibold tabular-nums"
                 :class="row.type === 'income' ? 'text-positive' : 'text-negative'"
@@ -276,22 +228,6 @@ function shortTxId(id) {
                 {{ row.type === 'income' ? '+' : '−'
                 }}{{ formatIndonesianRupiah(row.amount) }}
               </p>
-            </td>
-            <td class="px-3 py-3">
-              <span
-                class="inline-flex items-center gap-1 rounded-[6px] border px-2 py-0.5 text-[11px] font-semibold capitalize"
-                :class="
-                  row.status === 'completed'
-                    ? 'border-positive/30 bg-positive/12 text-positive'
-                    : 'border-amber-500/30 bg-amber-500/14 text-amber-400'
-                "
-              >
-                <span
-                  class="h-1.5 w-1.5 rounded-full"
-                  :class="row.status === 'completed' ? 'bg-positive' : 'bg-amber-400'"
-                />
-                {{ row.status }}
-              </span>
             </td>
             <td class="whitespace-nowrap px-3 py-3 pr-5 text-right text-[12px] text-text-tertiary sm:pr-6">
               {{ formatDateDisplay(row.date) }}
@@ -313,5 +249,18 @@ function shortTxId(id) {
         </tbody>
       </table>
     </div>
+
+    <RecentActivitiesFilterModal
+      :open="filterModalOpen"
+      :wallets="wallets"
+      :categories="categories"
+      :applied-search="searchQuery"
+      :applied-wallet-id="filterWalletId"
+      :applied-category-id="filterCategoryId"
+      :applied-type="filterType"
+      @close="closeFilterModal"
+      @apply="onFilterApply"
+      @reset="onFilterReset"
+    />
   </section>
 </template>

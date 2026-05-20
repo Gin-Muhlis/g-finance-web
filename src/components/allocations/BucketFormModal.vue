@@ -5,6 +5,11 @@ import { X } from 'lucide-vue-next'
 
 import CategoryIcon from '@/components/categories/CategoryIcon.vue'
 import RupiahInput from '@/components/ui/RupiahInput.vue'
+import {
+  ALLOCATION_DEFAULT_ICON,
+  ALLOCATION_ICON_NAMES,
+} from '@/constants/allocationIconNames'
+import { getCategoryIconComponent } from '@/utils/categoryIconMap'
 import { parseMoneyString, toApiMoneyString } from '@/utils/moneyFormat.js'
 
 const BUCKET_TYPES = [
@@ -27,7 +32,7 @@ const emit = defineEmits(['close', 'submit'])
 const name = ref('')
 const type = ref('')
 const targetInput = ref('')
-const iconName = ref('PiggyBank')
+const iconName = ref(ALLOCATION_DEFAULT_ICON)
 const colorHex = ref('#FF5500')
 const localError = ref('')
 
@@ -39,7 +44,7 @@ function reset() {
   name.value = ''
   type.value = ''
   targetInput.value = ''
-  iconName.value = 'PiggyBank'
+  iconName.value = ALLOCATION_DEFAULT_ICON
   colorHex.value = '#FF5500'
   localError.value = ''
 }
@@ -53,7 +58,10 @@ function loadFromBucket() {
   if (b.targetAmount != null && String(b.targetAmount) !== '') {
     targetInput.value = String(Math.round(parseFloat(String(b.targetAmount))))
   }
-  iconName.value = b.icon || 'PiggyBank'
+  iconName.value =
+    b.icon && ALLOCATION_ICON_NAMES.includes(b.icon)
+      ? b.icon
+      : ALLOCATION_DEFAULT_ICON
   colorHex.value = b.color || '#FF5500'
 }
 
@@ -75,6 +83,15 @@ function close() {
   emit('close')
 }
 
+function iconButtonClass(isActive) {
+  return [
+    'flex h-10 w-10 items-center justify-center rounded-[10px] border transition-colors',
+    isActive
+      ? 'border-accent-primary bg-accent-primary/15 shadow-card-orange-active'
+      : 'border-border-default bg-ds-black-400/50 hover:border-white/15 hover:bg-white/[0.04]',
+  ]
+}
+
 function onSubmit() {
   localError.value = ''
   const n = name.value.trim()
@@ -92,7 +109,9 @@ function onSubmit() {
     name: n,
     type: type.value || undefined,
     targetAmount: targetPayload,
-    icon: iconName.value.trim() || undefined,
+    icon: ALLOCATION_ICON_NAMES.includes(iconName.value)
+      ? iconName.value
+      : ALLOCATION_DEFAULT_ICON,
     color: colorHex.value.trim() || undefined,
   })
 }
@@ -205,48 +224,61 @@ function onSubmit() {
                 :disabled="submitting"
               />
             </div>
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label
-                  for="b-icon"
-                  class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary"
+            <div>
+              <div class="mb-2 flex items-center gap-2">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
+                  Ikon
+                </p>
+                <div
+                  class="flex h-9 w-9 items-center justify-center rounded-[10px] border border-border-default bg-ds-black-200/80"
+                  aria-hidden="true"
                 >
-                  Ikon (Lucide)
-                </label>
-                <div class="flex items-center gap-2">
-                  <div
-                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border border-border-default bg-ds-black-200/80"
-                  >
-                    <CategoryIcon
-                      :icon-name="iconName"
-                      :color="colorHex"
-                      :size="20"
-                    />
-                  </div>
-                  <input
-                    id="b-icon"
-                    v-model="iconName"
-                    type="text"
-                    class="min-w-0 flex-1 rounded-input border border-border-default bg-ds-black-400/80 px-2.5 py-2 text-[13px] text-text-primary outline-none focus:border-border-accent-orange"
-                    placeholder="PiggyBank"
+                  <CategoryIcon
+                    :icon-name="iconName"
+                    :color="colorHex"
+                    :size="18"
                   />
                 </div>
               </div>
-              <div>
-                <label
-                  for="b-color"
-                  class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary"
+              <div
+                class="grid max-h-[200px] grid-cols-5 gap-2 overflow-y-auto rounded-[10px] border border-border-default bg-ds-black-400/40 p-2 sm:grid-cols-6"
+              >
+                <button
+                  v-for="name in ALLOCATION_ICON_NAMES"
+                  :key="name"
+                  type="button"
+                  :class="iconButtonClass(iconName === name)"
+                  :disabled="submitting"
+                  :title="name"
+                  @click="iconName = name"
                 >
-                  Warna
-                </label>
-                <input
-                  id="b-color"
-                  v-model="colorHex"
-                  type="text"
-                  class="w-full rounded-input border border-border-default bg-ds-black-400/80 px-3.5 py-2.5 font-mono text-[13px] text-text-primary outline-none focus:border-border-accent-orange"
-                  placeholder="#FF5500"
-                />
+                  <component
+                    :is="getCategoryIconComponent(name)"
+                    :size="18"
+                    :stroke-width="2"
+                    class="text-text-primary"
+                  />
+                </button>
               </div>
+              <p class="mt-1.5 text-[11px] text-text-tertiary">
+                Tersimpan sebagai:
+                <span class="font-mono text-text-secondary">{{ iconName }}</span>
+              </p>
+            </div>
+            <div>
+              <label
+                for="b-color"
+                class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary"
+              >
+                Warna
+              </label>
+              <input
+                id="b-color"
+                v-model="colorHex"
+                type="text"
+                class="w-full rounded-input border border-border-default bg-ds-black-400/80 px-3.5 py-2.5 font-mono text-[13px] text-text-primary outline-none focus:border-border-accent-orange"
+                placeholder="#FF5500"
+              />
             </div>
           </form>
         </div>

@@ -1,19 +1,15 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
 import {
   ArrowLeftRight,
-  Bell,
-  ChevronDown,
   LayoutDashboard,
   LogOut,
   Menu,
   PieChart,
   PiggyBank,
-  Search,
-  Settings,
   Tags,
   User,
   Wallet,
@@ -25,8 +21,6 @@ const router = useRouter()
 const auth = useAuthStore()
 
 const sidebarOpen = ref(false)
-const profileMenuOpen = ref(false)
-const profileMenuRef = ref(null)
 
 const pageTitle = computed(() => route.meta.title || 'Dashboard')
 
@@ -37,7 +31,6 @@ const navItems = [
   { to: '/app/budget', label: 'Budget', icon: PieChart },
   { to: '/app/allocations', label: 'Allocation', icon: PiggyBank },
   { to: '/app/transactions', label: 'Transactions', icon: ArrowLeftRight },
-  { to: '/app/profile', label: 'Profile', icon: User },
 ]
 
 const userInitials = computed(() => {
@@ -53,47 +46,10 @@ function closeSidebar() {
   sidebarOpen.value = false
 }
 
-function toggleProfileMenu() {
-  profileMenuOpen.value = !profileMenuOpen.value
-}
-
-function closeProfileMenu() {
-  profileMenuOpen.value = false
-}
-
-function onDocumentClick(event) {
-  if (!profileMenuOpen.value) return
-  const el = profileMenuRef.value
-  if (el && !el.contains(event.target)) {
-    profileMenuOpen.value = false
-  }
-}
-
-function onKeydown(event) {
-  if (event.key === 'Escape') {
-    profileMenuOpen.value = false
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('click', onDocumentClick)
-  document.addEventListener('keydown', onKeydown)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', onDocumentClick)
-  document.removeEventListener('keydown', onKeydown)
-})
-
 async function handleLogout() {
-  profileMenuOpen.value = false
+  closeSidebar()
   await auth.logout()
   await router.push({ name: 'login' })
-}
-
-function goProfile() {
-  profileMenuOpen.value = false
-  router.push({ name: 'app-profile' })
 }
 </script>
 
@@ -126,7 +82,7 @@ function goProfile() {
       aria-hidden="true"
     />
 
-    <div class="relative z-10 flex min-h-[100dvh]">
+    <div class="relative z-10 min-h-[100dvh]">
       <div
         v-if="sidebarOpen"
         class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
@@ -136,8 +92,8 @@ function goProfile() {
 
       <aside
         :class="[
-          'fixed inset-y-0 left-0 z-50 flex w-[220px] flex-col border-r border-white/[0.08] bg-ds-black-200/85 shadow-sidebar backdrop-blur-xl transition-transform duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] md:static md:translate-x-0',
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+          'fixed inset-y-0 left-0 z-50 flex h-[100dvh] w-[220px] flex-col border-r border-white/[0.08] bg-ds-black-200/85 shadow-sidebar backdrop-blur-xl transition-transform duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
         ]"
         aria-label="Menu utama"
       >
@@ -192,19 +148,37 @@ function goProfile() {
           </router-link>
         </nav>
 
-        <div
-          class="m-3 rounded-[12px] border border-[rgba(255,80,0,0.25)] bg-gradient-to-br from-[rgba(255,80,0,0.18)] to-[rgba(255,80,0,0.06)] p-3.5"
-        >
-          <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-ds-orange-300">
-            Tips
-          </p>
-          <p class="mt-1 text-[12.5px] leading-snug text-text-secondary">
-            Tetapkan budget bulanan supaya pengeluaran kamu tetap terkendali.
-          </p>
+        <div class="shrink-0 border-t border-white/[0.06] bg-ds-black-200/30 p-3 backdrop-blur-sm">
+          <div class="flex items-center gap-2.5 px-1">
+            <span
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-ds-orange-100 to-ds-orange-300 text-[11px] font-bold text-white shadow-[0_0_0_2px_rgba(255,255,255,0.08)]"
+            >
+              {{ userInitials }}
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-[13px] font-semibold text-text-primary">
+                {{ auth.user?.name || 'Pengguna' }}
+              </p>
+              <p class="truncate text-[11px] text-text-tertiary">
+                {{ auth.user?.email || '—' }}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-negative/30 bg-negative/10 px-3 py-2.5 text-[13px] font-medium text-negative transition-colors hover:border-negative/45 hover:bg-negative/15"
+            @click="handleLogout"
+          >
+            <LogOut
+              :size="16"
+              :stroke-width="2"
+            />
+            <span>Keluar</span>
+          </button>
         </div>
       </aside>
 
-      <div class="flex min-w-0 flex-1 flex-col md:ml-0">
+      <div class="flex h-[100dvh] min-w-0 flex-col overflow-y-auto md:ml-[220px]">
         <header
           class="sticky top-0 z-30 flex h-[60px] shrink-0 items-center gap-3 border-b border-white/[0.08] bg-ds-black-200/80 px-4 backdrop-blur-xl sm:px-6"
         >
@@ -228,31 +202,6 @@ function goProfile() {
             {{ pageTitle }}
           </h1>
 
-          <button
-            type="button"
-            class="hidden h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-white/[0.08] bg-white/[0.04] text-text-secondary transition-colors hover:border-white/15 hover:bg-white/[0.08] hover:text-text-primary sm:inline-flex"
-            aria-label="Cari"
-          >
-            <Search
-              :size="16"
-              :stroke-width="2"
-            />
-          </button>
-
-          <button
-            type="button"
-            class="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-white/[0.08] bg-white/[0.04] text-text-secondary transition-colors hover:border-white/15 hover:bg-white/[0.08] hover:text-text-primary"
-            aria-label="Notifikasi"
-          >
-            <Bell
-              :size="16"
-              :stroke-width="2"
-            />
-            <span
-              class="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-accent-primary shadow-[0_0_8px_rgba(255,80,0,0.7)]"
-              aria-hidden="true"
-            />
-          </button>
 
           <div
             ref="profileMenuRef"

@@ -42,6 +42,7 @@ const tierConfig = {
     barGradient: 'from-emerald-500 to-emerald-400',
     chip: 'bg-emerald-500/12 text-emerald-400 border-emerald-500/30',
     glow: 'rgba(16,185,129,0.35)',
+    textColor: 'text-emerald-400',
   },
   t2: {
     label: 'Moderate',
@@ -49,6 +50,7 @@ const tierConfig = {
     barGradient: 'from-cyan-500 to-teal-400',
     chip: 'bg-cyan-500/12 text-cyan-400 border-cyan-500/30',
     glow: 'rgba(6,182,212,0.4)',
+    textColor: 'text-cyan-400',
   },
   t3: {
     label: 'Warning',
@@ -56,6 +58,7 @@ const tierConfig = {
     barGradient: 'from-amber-500 to-orange-400',
     chip: 'bg-amber-500/14 text-amber-400 border-amber-500/30',
     glow: 'rgba(245,158,11,0.4)',
+    textColor: 'text-amber-400',
   },
   t4: {
     label: 'Critical',
@@ -63,6 +66,7 @@ const tierConfig = {
     barGradient: 'from-orange-500 to-ds-orange-300',
     chip: 'bg-ds-orange-200/15 text-ds-orange-300 border-ds-orange-200/40',
     glow: 'rgba(255,80,0,0.45)',
+    textColor: 'text-negative',
   },
   over: {
     label: 'Over budget',
@@ -70,6 +74,7 @@ const tierConfig = {
     barGradient: 'from-rose-500 to-red-400',
     chip: 'bg-negative/15 text-negative border-negative/35',
     glow: 'rgba(239,68,68,0.4)',
+    textColor: 'text-negative',
   },
 }
 
@@ -209,7 +214,7 @@ const config = computed(() => tierConfig[tier.value])
       </div>
     </div>
 
-    <p class="relative mt-4 text-[12px] leading-snug text-text-secondary">
+    <p class="relative mt-4 text-[12px] leading-snug" :class="config.textColor">
       {{ config.description }}
     </p>
   </section>

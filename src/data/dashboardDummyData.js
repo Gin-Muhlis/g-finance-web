@@ -38,6 +38,33 @@ export const DASHBOARD_WALLETS = [
     balance: 945_800,
     color: '#A855F7',
   },
+  {
+    id: 'w-gopay',
+    name: 'GOPAY',
+    type: 'e-wallet',
+    typeLabel: 'Dompet digital',
+    icon: 'WalletCards',
+    balance: 945_800,
+    color: '#A855F7',
+  },
+  {
+    id: 'w-gopay',
+    name: 'GOPAY',
+    type: 'e-wallet',
+    typeLabel: 'Dompet digital',
+    icon: 'WalletCards',
+    balance: 945_800,
+    color: '#A855F7',
+  },
+  {
+    id: 'w-gopay',
+    name: 'GOPAY',
+    type: 'e-wallet',
+    typeLabel: 'Dompet digital',
+    icon: 'WalletCards',
+    balance: 945_800,
+    color: '#A855F7',
+  },
 ]
 
 /** ===== Categories ===== */
@@ -78,6 +105,22 @@ export const DASHBOARD_BUCKETS = [
     color: '#F97316',
     balance: 4_250_000,
     target: 15_000_000,
+  },
+  {
+    id: 'b-investment',
+    name: 'Investment',
+    icon: 'TrendingUp',
+    color: '#A855F7',
+    balance: 22_000_000,
+    target: 50_000_000,
+  },
+  {
+    id: 'b-investment',
+    name: 'Investment',
+    icon: 'TrendingUp',
+    color: '#A855F7',
+    balance: 22_000_000,
+    target: 50_000_000,
   },
   {
     id: 'b-investment',
