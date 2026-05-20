@@ -1,13 +1,14 @@
 <script setup>
 import { computed } from 'vue'
 
-import { ArrowUpRight, Plus, Settings2 } from 'lucide-vue-next'
+import { PiggyBank } from 'lucide-vue-next'
 
 import CategoryIcon from '@/components/categories/CategoryIcon.vue'
 import { formatIndonesianRupiah } from '@/utils/formatIndonesianRupiah'
 
 const props = defineProps({
   buckets: { type: Array, required: true },
+  loading: { type: Boolean, default: false },
 })
 
 const enrichedBuckets = computed(() =>
@@ -50,7 +51,7 @@ const tierGradient = {
 
 <template>
   <section
-    class="relative flex h-full flex-col overflow-hidden rounded-[18px] border border-white/[0.08] bg-ds-black-300/85 p-5 shadow-card-elevated backdrop-blur-md sm:p-6"
+    class="relative flex h-full flex-col overflow-hidden rounded-[18px] border border-white/[0.08] bg-ds-black-300/85 p-5 shadow-card-elevated backdrop-blur-md transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-white/[0.14] sm:p-6"
   >
     <header class="flex flex-wrap items-start justify-between gap-3">
       <div>
@@ -64,13 +65,41 @@ const tierGradient = {
     </header>
 
     <div
+      v-if="loading"
+      class="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2"
+      aria-busy="true"
+    >
+      <div
+        v-for="i in 4"
+        :key="i"
+        class="min-h-[9.875rem] animate-pulse rounded-[14px] border border-white/[0.06] bg-white/[0.05]"
+      />
+    </div>
+    <div
+      v-else-if="!buckets.length"
+      class="mt-4 flex min-h-[220px] items-center gap-3 rounded-[14px] border border-dashed border-white/[0.1] bg-ds-black-400/45 px-4 py-5"
+    >
+      <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] border border-white/[0.08] bg-white/[0.04] text-text-tertiary">
+        <PiggyBank :size="21" />
+      </span>
+      <div>
+        <p class="text-[13px] font-semibold text-text-primary">
+          Belum ada bucket alokasi
+        </p>
+        <p class="mt-1 text-[12px] leading-snug text-text-tertiary">
+          Progress tabungan akan tampil setelah bucket dibuat.
+        </p>
+      </div>
+    </div>
+    <div
+      v-else
       class="mt-4 min-h-0 overflow-y-auto overscroll-y-contain pr-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] max-h-[calc(4*(9.875rem+1.25rem)-1.25rem)] sm:max-h-[calc(2*(9.875rem+1.25rem)-1.25rem)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent"
     >
       <ul class="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <li
           v-for="bucket in enrichedBuckets"
           :key="bucket.id"
-          class="group min-h-[9.875rem] rounded-[14px] border border-white/[0.06] bg-ds-black-400/60 p-3.5 transition-colors hover:border-white/[0.14] hover:bg-ds-black-500/70"
+          class="group min-h-[9.875rem] rounded-[14px] border border-white/[0.06] bg-ds-black-400/60 p-3.5 transition-[transform,border-color,background-color] duration-300 hover:-translate-y-0.5 hover:border-white/[0.14] hover:bg-ds-black-500/70"
         >
         <div class="flex items-start gap-3">
           <span

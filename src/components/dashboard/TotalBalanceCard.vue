@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 
-import { ArrowDownRight, ArrowUpRight, Plus } from 'lucide-vue-next'
+import { Wallet } from 'lucide-vue-next'
 
 import CategoryIcon from '@/components/categories/CategoryIcon.vue'
 import { formatIndonesianRupiah } from '@/utils/formatIndonesianRupiah'
@@ -9,6 +9,7 @@ import { formatIndonesianRupiah } from '@/utils/formatIndonesianRupiah'
 const props = defineProps({
   wallets: { type: Array, required: true },
   previousTotalBalance: { type: Number, default: 0 },
+  loading: { type: Boolean, default: false },
 })
 
 const totalBalance = computed(() =>
@@ -31,7 +32,7 @@ const formattedChange = computed(() => {
 
 <template>
   <section
-    class="relative flex h-full min-w-0 flex-col overflow-hidden rounded-[18px] border border-white/[0.08] bg-gradient-to-br from-ds-black-300/95 to-ds-black-400/90 p-5 shadow-card-elevated backdrop-blur-md sm:p-6"
+    class="relative flex h-full min-w-0 flex-col overflow-hidden rounded-[18px] border border-white/[0.08] bg-gradient-to-br from-ds-black-300/95 to-ds-black-400/90 p-5 shadow-card-elevated backdrop-blur-md transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-white/[0.14] sm:p-6"
   >
     <div
       class="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[radial-gradient(circle,rgba(255,80,0,0.35)_0%,transparent_70%)] blur-2xl"
@@ -49,7 +50,18 @@ const formattedChange = computed(() => {
       </div>
     </header>
 
-    <div class="relative mt-4">
+    <div
+      v-if="loading"
+      class="relative mt-4 space-y-3"
+      aria-busy="true"
+    >
+      <div class="h-10 w-[min(80%,26rem)] animate-pulse rounded-[10px] bg-white/[0.08]" />
+      <div class="h-3 w-48 animate-pulse rounded-full bg-white/[0.06]" />
+    </div>
+    <div
+      v-else
+      class="relative mt-4"
+    >
       <p
         class="font-mono text-[34px] font-bold leading-[1.05] tracking-[-0.02em] tabular-nums text-text-primary sm:text-[40px]"
       >
@@ -72,6 +84,33 @@ const formattedChange = computed(() => {
     </div>
 
     <div
+      v-if="loading"
+      class="relative mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3"
+    >
+      <div
+        v-for="i in 3"
+        :key="i"
+        class="h-[92px] animate-pulse rounded-[12px] border border-white/[0.06] bg-white/[0.05]"
+      />
+    </div>
+    <div
+      v-else-if="!wallets.length"
+      class="relative mt-3 flex min-h-[112px] items-center gap-3 rounded-[14px] border border-dashed border-white/[0.1] bg-ds-black-400/45 px-4 py-4"
+    >
+      <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-white/[0.08] bg-white/[0.04] text-text-tertiary">
+        <Wallet :size="19" />
+      </span>
+      <div>
+        <p class="text-[13px] font-semibold text-text-primary">
+          Belum ada wallet
+        </p>
+        <p class="mt-0.5 text-[12px] text-text-tertiary">
+          Total balance akan muncul setelah wallet dibuat.
+        </p>
+      </div>
+    </div>
+    <div
+      v-else
       class="relative mt-3 min-w-0"
       role="region"
       aria-label="Daftar wallet"

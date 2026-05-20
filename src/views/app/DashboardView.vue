@@ -29,6 +29,7 @@ const customFromDate = ref('');
 const customToDate = ref('');
 const isLoading = ref(true);
 const isCashflowLoading = ref(false);
+const isRecentLoading = ref(false);
 const errorMessage = ref('');
 const wallets = ref([]);
 const categories = ref([]);
@@ -119,17 +120,21 @@ async function loadCashflowData() {
 }
 
 async function loadRecentTransactions(filters = recentTransactionFilters.value) {
+  isRecentLoading.value = true;
   try {
     recentTransactionFilters.value = filters;
     recentTransactions.value = await getDashboardRecentTransactions(filters);
   } catch (error) {
     errorMessage.value =
       error?.response?.data?.message || 'Gagal memuat transaksi terbaru dashboard.';
+  } finally {
+    isRecentLoading.value = false;
   }
 }
 
 async function loadDashboard() {
   isLoading.value = true;
+  isRecentLoading.value = true;
   errorMessage.value = '';
   try {
     const [baseData, recentRows] = await Promise.all([
@@ -148,6 +153,7 @@ async function loadDashboard() {
       error?.response?.data?.message || 'Gagal memuat data dashboard.';
   } finally {
     isLoading.value = false;
+    isRecentLoading.value = false;
   }
 }
 
@@ -162,7 +168,7 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <section class="min-w-0">
+    <section class="min-w-0 animate-dashboard-rise">
       <h2
         class="text-[24px] font-bold leading-tight tracking-[-0.015em] text-text-primary sm:text-[28px]"
       >
@@ -185,17 +191,21 @@ onMounted(() => {
       <TotalBalanceCard
         :wallets="wallets"
         :previous-total-balance="previousTotalBalance"
+        :loading="isLoading"
+        class="animate-dashboard-rise [animation-delay:70ms]"
       />
       <BudgetUsageCard
         :total-budget="budget.totalBudget"
         :total-used="budget.totalUsed"
         :month-label="monthLabel"
+        :loading="isLoading"
+        class="animate-dashboard-rise [animation-delay:120ms]"
       />
     </section>
 
     <!-- Row 2: Summary cards + Income vs Expense chart -->
     <section
-      class="overflow-hidden rounded-[18px] border border-white/[0.08] bg-ds-black-300/60 p-4 shadow-card-elevated backdrop-blur-md sm:p-5 md:p-6"
+      class="animate-dashboard-rise overflow-hidden rounded-[18px] border border-white/[0.08] bg-ds-black-300/60 p-4 shadow-card-elevated backdrop-blur-md [animation-delay:170ms] sm:p-5 md:p-6"
     >
       <header
         class="relative mb-5 border-b border-white/[0.06] pb-4 sm:pr-[200px]"
@@ -232,6 +242,7 @@ onMounted(() => {
             :amount="currentTotals.income"
             :previous-amount="previousTotals.income"
             :period-label="currentRange.label"
+            :loading="isCashflowLoading || isLoading"
           />
           <SummaryCard
             variant="spending"
@@ -239,6 +250,7 @@ onMounted(() => {
             :amount="currentTotals.expense"
             :previous-amount="previousTotals.expense"
             :period-label="currentRange.label"
+            :loading="isCashflowLoading || isLoading"
           />
           <SummaryCard
             variant="cashflow"
@@ -247,6 +259,7 @@ onMounted(() => {
             :previous-amount="previousTotals.net"
             :period-label="currentRange.label"
             signed-display
+            :loading="isCashflowLoading || isLoading"
           />
           <SummaryCard
             variant="saving"
@@ -254,6 +267,7 @@ onMounted(() => {
             :amount="currentSavingTotal"
             :previous-amount="previousSavingTotal"
             :period-label="currentRange.label"
+            :loading="isCashflowLoading || isLoading"
           />
         </div>
 
@@ -262,6 +276,7 @@ onMounted(() => {
             :series="chartSeries"
             :period-label="isCashflowLoading ? 'Loading...' : currentRange.label"
             embedded
+            :loading="isCashflowLoading || isLoading"
           />
         </div>
       </div>
@@ -270,16 +285,39 @@ onMounted(() => {
     <!-- Row 3: Allocation buckets | Recent activities -->
     <div class="grid gap-4 xl:grid-cols-12 xl:items-stretch">
       <div class="xl:col-span-5">
-        <AllocationBucketsCard :buckets="buckets" />
+        <AllocationBucketsCard
+          :buckets="buckets"
+          :loading="isLoading"
+          class="animate-dashboard-rise [animation-delay:220ms]"
+        />
       </div>
       <div class="min-w-0 xl:col-span-7">
         <RecentActivitiesTable
           :transactions="recentTransactions"
           :wallets="wallets"
           :categories="categories"
+          :loading="isRecentLoading || isLoading"
+          class="animate-dashboard-rise [animation-delay:260ms]"
           @filters-change="loadRecentTransactions"
         />
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.animate-dashboard-rise {
+  animation: dashboard-rise 540ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes dashboard-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>

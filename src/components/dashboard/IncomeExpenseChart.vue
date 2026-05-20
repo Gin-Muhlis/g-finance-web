@@ -10,6 +10,7 @@ const props = defineProps({
   periodLabel: { type: String, default: '' },
   /** Tanpa border/card sendiri — dipakai di dalam section gabungan dashboard */
   embedded: { type: Boolean, default: false },
+  loading: { type: Boolean, default: false },
 })
 
 const rootClass = computed(() =>
@@ -179,6 +180,9 @@ const formattedHoverDate = computed(() => {
 })
 
 const netIsPositive = computed(() => totals.value.net >= 0)
+const hasActivity = computed(() =>
+  props.series.some((point) => Number(point.income || 0) > 0 || Number(point.expense || 0) > 0),
+)
 </script>
 
 <template>
@@ -247,7 +251,22 @@ const netIsPositive = computed(() => totals.value.net >= 0)
       </div>
     </div>
 
-    <div class="relative mt-2 w-full overflow-hidden">
+    <div
+      v-if="loading"
+      class="relative mt-2 flex h-[260px] w-full animate-pulse items-end gap-2 overflow-hidden rounded-[14px] border border-white/[0.06] bg-white/[0.03] px-4 py-5"
+      aria-busy="true"
+    >
+      <div
+        v-for="i in 18"
+        :key="i"
+        class="flex-1 rounded-t-[8px] bg-white/[0.07]"
+        :style="{ height: `${28 + ((i * 19) % 58)}%` }"
+      />
+    </div>
+    <div
+      v-else
+      class="relative mt-2 w-full overflow-hidden"
+    >
       <svg
         :viewBox="`0 0 ${VIEW_W} ${VIEW_H}`"
         class="block h-[260px] w-full"
@@ -321,18 +340,18 @@ const netIsPositive = computed(() => totals.value.net >= 0)
         </g>
 
         <path
-          v-if="series.length"
+          v-if="series.length && hasActivity"
           :d="expenseAreaPath"
           fill="url(#expenseGradient)"
         />
         <path
-          v-if="series.length"
+          v-if="series.length && hasActivity"
           :d="incomeAreaPath"
           fill="url(#incomeGradient)"
         />
 
         <path
-          v-if="series.length"
+          v-if="series.length && hasActivity"
           :d="expenseLinePath"
           fill="none"
           stroke="#FF6600"
@@ -341,7 +360,7 @@ const netIsPositive = computed(() => totals.value.net >= 0)
           stroke-linejoin="round"
         />
         <path
-          v-if="series.length"
+          v-if="series.length && hasActivity"
           :d="incomeLinePath"
           fill="none"
           stroke="#22C55E"
@@ -350,7 +369,7 @@ const netIsPositive = computed(() => totals.value.net >= 0)
           stroke-linejoin="round"
         />
 
-        <g v-if="series.length === 1">
+        <g v-if="series.length === 1 && hasActivity">
           <circle
             :cx="incomePoints[0].x"
             :cy="incomePoints[0].y"
@@ -365,7 +384,7 @@ const netIsPositive = computed(() => totals.value.net >= 0)
           />
         </g>
 
-        <g v-if="hoverData">
+        <g v-if="hoverData && hasActivity">
           <line
             :x1="hoverData.x"
             :x2="hoverData.x"
@@ -408,7 +427,7 @@ const netIsPositive = computed(() => totals.value.net >= 0)
       </svg>
 
       <div
-        v-if="hoverData"
+        v-if="hoverData && hasActivity"
         class="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-[10px] border border-white/[0.12] bg-ds-black-400/97 px-3 py-2 shadow-card-elevated backdrop-blur-md"
         :style="{
           left: `${(hoverData.x / VIEW_W) * 100}%`,
@@ -437,8 +456,8 @@ const netIsPositive = computed(() => totals.value.net >= 0)
       </div>
 
       <div
-        v-if="!series.length"
-        class="absolute inset-0 flex items-center justify-center text-[13px] text-text-tertiary"
+        v-if="!hasActivity"
+        class="absolute inset-0 flex items-center justify-center rounded-[14px] border border-dashed border-white/[0.08] bg-ds-black-400/25 px-4 text-center text-[13px] text-text-tertiary"
       >
         Tidak ada data untuk periode ini.
       </div>

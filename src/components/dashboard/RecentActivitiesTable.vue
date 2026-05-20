@@ -11,6 +11,7 @@ const props = defineProps({
   transactions: { type: Array, required: true },
   wallets: { type: Array, required: true },
   categories: { type: Array, required: true },
+  loading: { type: Boolean, default: false },
 })
 const emit = defineEmits(['filters-change'])
 
@@ -146,7 +147,7 @@ function amountClass(row) {
 
 <template>
   <section
-    class="flex h-full min-w-0 flex-col overflow-hidden rounded-[18px] border border-white/[0.08] bg-ds-black-300/85 shadow-card-elevated backdrop-blur-md"
+    class="flex h-full min-w-0 flex-col overflow-hidden rounded-[18px] border border-white/[0.08] bg-ds-black-300/85 shadow-card-elevated backdrop-blur-md transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-white/[0.14]"
   >
     <header
       class="flex shrink-0 items-start justify-between gap-3 border-b border-white/[0.06] p-5 sm:p-6"
@@ -211,10 +212,37 @@ function amountClass(row) {
           </tr>
         </thead>
         <tbody>
+          <template v-if="loading">
+            <tr
+              v-for="i in 5"
+              :key="`loading-${i}`"
+              class="border-t border-white/[0.04]"
+            >
+              <td class="px-5 py-3 sm:px-6">
+                <div class="h-4 w-20 animate-pulse rounded-full bg-white/[0.07]" />
+              </td>
+              <td class="px-3 py-3">
+                <div class="h-4 w-36 animate-pulse rounded-full bg-white/[0.08]" />
+              </td>
+              <td class="hidden px-3 py-3 md:table-cell">
+                <div class="h-7 w-28 animate-pulse rounded-[8px] bg-white/[0.06]" />
+              </td>
+              <td class="hidden px-3 py-3 lg:table-cell">
+                <div class="h-7 w-24 animate-pulse rounded-[8px] bg-white/[0.06]" />
+              </td>
+              <td class="px-3 py-3">
+                <div class="ml-auto h-4 w-24 animate-pulse rounded-full bg-white/[0.07]" />
+              </td>
+              <td class="px-3 py-3 pr-5 sm:pr-6">
+                <div class="ml-auto h-4 w-16 animate-pulse rounded-full bg-white/[0.06]" />
+              </td>
+            </tr>
+          </template>
           <tr
+            v-else
             v-for="row in filteredRows"
             :key="row.id"
-            class="border-t border-white/[0.04] transition-colors hover:bg-white/[0.02]"
+            class="border-t border-white/[0.04] transition-[background-color,transform] duration-200 hover:bg-white/[0.02]"
           >
             <td
               class="whitespace-nowrap px-5 py-3 font-mono text-[12px] text-text-tertiary sm:px-6"
@@ -276,7 +304,7 @@ function amountClass(row) {
               {{ formatDateDisplay(row.date) }}
             </td>
           </tr>
-          <tr v-if="!filteredRows.length">
+          <tr v-if="!loading && !filteredRows.length">
             <td
               :colspan="7"
               class="px-5 py-10 text-center text-[13px] text-text-tertiary sm:px-6"
@@ -286,7 +314,7 @@ function amountClass(row) {
                 :stroke-width="1.5"
                 class="mx-auto mb-2 text-text-tertiary"
               />
-              Tidak ada transaksi yang cocok dengan filter.
+              {{ hasActiveFilters ? 'Tidak ada transaksi yang cocok dengan filter.' : 'Belum ada transaksi terbaru.' }}
             </td>
           </tr>
         </tbody>

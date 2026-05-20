@@ -25,6 +25,7 @@ const props = defineProps({
   periodLabel: { type: String, default: '' },
   /** Untuk net cashflow: tanda nilai bisa negatif → tampilkan tanda. */
   signedDisplay: { type: Boolean, default: false },
+  loading: { type: Boolean, default: false },
 })
 
 const variantConfig = {
@@ -92,7 +93,7 @@ const formattedAmount = computed(() => {
 
 <template>
   <article
-    class="relative flex h-full flex-col overflow-hidden rounded-[14px] border border-white/[0.08] bg-ds-black-300/85 p-4 shadow-card-default backdrop-blur-sm transition-colors hover:border-white/[0.14] hover:bg-ds-black-300"
+    class="relative flex h-full flex-col overflow-hidden rounded-[14px] border border-white/[0.08] bg-ds-black-300/85 p-4 shadow-card-default backdrop-blur-sm transition-[transform,border-color,background-color] duration-300 hover:-translate-y-0.5 hover:border-white/[0.14] hover:bg-ds-black-300"
   >
     <div
       class="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full opacity-60 blur-2xl"
@@ -122,6 +123,19 @@ const formattedAmount = computed(() => {
       </span>
     </header>
 
+    <div
+      v-if="loading"
+      class="relative mt-3 space-y-3"
+      aria-busy="true"
+    >
+      <div class="h-7 w-[82%] animate-pulse rounded-[8px] bg-white/[0.08]" />
+      <div class="flex items-center justify-between gap-2">
+        <div class="h-5 w-16 animate-pulse rounded-[6px] bg-white/[0.07]" />
+        <div class="h-3 w-20 animate-pulse rounded-full bg-white/[0.06]" />
+      </div>
+    </div>
+
+    <template v-else>
     <p
       class="relative mt-3 font-mono text-[22px] font-bold leading-tight tracking-[-0.01em] tabular-nums text-text-primary sm:text-[24px]"
     >
@@ -146,5 +160,6 @@ const formattedAmount = computed(() => {
         {{ periodLabel }}
       </p>
     </div>
+    </template>
   </article>
 </template>
