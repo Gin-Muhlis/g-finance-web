@@ -21,6 +21,31 @@ const passwordMismatch = computed(
     password.value !== passwordConfirm.value
 )
 
+const REGISTRATION_DISABLED_API_MESSAGE =
+  'Registration is disabled. Contact the administrator to request access.'
+
+function resolveRegisterErrorMessage(err) {
+  const msg = err?.response?.data?.message
+  const code = err?.response?.data?.error
+
+  if (code === 'CONFLICT') {
+    return 'Email sudah terdaftar.'
+  }
+
+  if (
+    typeof msg === 'string' &&
+    msg.trim() === REGISTRATION_DISABLED_API_MESSAGE
+  ) {
+    return 'Web ini digunakan untuk pribadi, jika ingin akses silahkan hubungi 6282343371647'
+  }
+
+  if (typeof msg === 'string') {
+    return msg
+  }
+
+  return 'Pendaftaran gagal. Periksa data Anda.'
+}
+
 async function onSubmit() {
   if (submitting.value) return
 
@@ -43,15 +68,7 @@ async function onSubmit() {
     })
     await router.push({ name: 'login', query: { registered: '1' } })
   } catch (err) {
-    const msg = err?.response?.data?.message
-    const code = err?.response?.data?.error
-    if (code === 'CONFLICT') {
-      errorMessage.value = 'Email sudah terdaftar.'
-    } else if (typeof msg === 'string') {
-      errorMessage.value = msg
-    } else {
-      errorMessage.value = 'Pendaftaran gagal. Periksa data Anda.'
-    }
+    errorMessage.value = resolveRegisterErrorMessage(err)
     submitting.value = false
   }
 }
