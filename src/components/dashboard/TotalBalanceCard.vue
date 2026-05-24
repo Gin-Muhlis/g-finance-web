@@ -1,10 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 
-import { Wallet } from 'lucide-vue-next'
-
 import CategoryIcon from '@/components/categories/CategoryIcon.vue'
-import { formatIndonesianRupiah } from '@/utils/formatIndonesianRupiah'
+import AnimatedNumber from '@/components/ui/AnimatedNumber.vue'
+import { Wallet } from 'lucide-vue-next'
 
 const props = defineProps({
   wallets: { type: Array, required: true },
@@ -65,7 +64,10 @@ const formattedChange = computed(() => {
       <p
         class="font-mono text-[34px] font-bold leading-[1.05] tracking-[-0.02em] tabular-nums text-text-primary sm:text-[40px]"
       >
-        {{ formatIndonesianRupiah(totalBalance) }}
+        <AnimatedNumber
+          :value="totalBalance"
+          :duration="1000"
+        />
       </p>
       <p class="mt-1.5 text-[12px] text-text-tertiary">
         {{ isPositive ? 'Naik' : 'Turun' }} dibanding periode sebelumnya
@@ -149,7 +151,11 @@ const formattedChange = computed(() => {
           <p
             class="mt-2.5 truncate font-mono text-[14.5px] font-semibold tabular-nums text-text-primary"
           >
-            {{ formatIndonesianRupiah(wallet.balance) }}
+            <AnimatedNumber
+              :value="Number(wallet.balance || 0)"
+              :duration="800"
+              :delay="120 + index * 60"
+            />
           </p>
         </article>
       </div>

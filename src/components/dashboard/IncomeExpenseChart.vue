@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 
+import AnimatedNumber from '@/components/ui/AnimatedNumber.vue'
 import { formatIndonesianRupiah } from '@/utils/formatIndonesianRupiah'
 import { formatIdrShort } from '@/utils/moneyFormat.js'
 
@@ -206,7 +207,10 @@ const hasActivity = computed(() =>
             Total Income
           </p>
           <p class="mt-0.5 font-mono text-[15px] font-bold tabular-nums text-positive">
-            {{ formatIndonesianRupiah(totals.income) }}
+            <AnimatedNumber
+              :value="totals.income"
+              :duration="900"
+            />
           </p>
         </div>
         <div class="rounded-[10px] border border-negative/25 bg-negative/8 px-3 py-2">
@@ -214,7 +218,11 @@ const hasActivity = computed(() =>
             Total Expense
           </p>
           <p class="mt-0.5 font-mono text-[15px] font-bold tabular-nums text-negative">
-            {{ formatIndonesianRupiah(totals.expense) }}
+            <AnimatedNumber
+              :value="totals.expense"
+              :duration="900"
+              :delay="60"
+            />
           </p>
         </div>
         <div
@@ -232,7 +240,12 @@ const hasActivity = computed(() =>
             class="mt-0.5 font-mono text-[15px] font-bold tabular-nums"
             :class="netIsPositive ? 'text-positive' : 'text-negative'"
           >
-            {{ netIsPositive ? '' : '−' }}{{ formatIndonesianRupiah(Math.abs(totals.net)) }}
+            <AnimatedNumber
+              :value="totals.net"
+              signed
+              :duration="900"
+              :delay="120"
+            />
           </p>
         </div>
       </div>

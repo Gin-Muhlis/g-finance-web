@@ -5,7 +5,7 @@ import { Filter, ListFilter } from 'lucide-vue-next'
 
 import CategoryIcon from '@/components/categories/CategoryIcon.vue'
 import RecentActivitiesFilterModal from '@/components/dashboard/RecentActivitiesFilterModal.vue'
-import { formatIndonesianRupiah } from '@/utils/formatIndonesianRupiah'
+import AnimatedNumber from '@/components/ui/AnimatedNumber.vue'
 
 const props = defineProps({
   transactions: { type: Array, required: true },
@@ -297,7 +297,10 @@ function amountClass(row) {
                 class="font-mono text-[13px] font-semibold tabular-nums"
                 :class="amountClass(row)"
               >
-                {{ amountPrefix(row) }}{{ formatIndonesianRupiah(row.amount) }}
+                {{ amountPrefix(row) }}<AnimatedNumber
+                  :value="Number(row.amount || 0)"
+                  :duration="750"
+                />
               </p>
             </td>
             <td class="whitespace-nowrap px-3 py-3 pr-5 text-right text-[12px] text-text-tertiary sm:pr-6">

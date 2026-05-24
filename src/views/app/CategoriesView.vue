@@ -1,11 +1,14 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 
-import { Loader2, Plus } from 'lucide-vue-next'
+import { Plus, Tags } from 'lucide-vue-next'
 
 import CategoryCard from '@/components/categories/CategoryCard.vue'
 import CategoryFormModal from '@/components/categories/CategoryFormModal.vue'
+import AnimatedNumber from '@/components/ui/AnimatedNumber.vue'
+import CardSkeletonGrid from '@/components/ui/CardSkeletonGrid.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { CATEGORY_TYPE_TABS } from '@/constants/categoryTypes'
 import {
   createCategory,
@@ -182,6 +185,8 @@ function goNext() {
 <template>
   <div class="space-y-6">
     <div
+      v-motion-fade
+      :duration="500"
       class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
     >
       <div class="min-w-0 flex-1">
@@ -231,36 +236,42 @@ function goNext() {
       {{ listError }}
     </div>
 
-    <div
+    <CardSkeletonGrid
       v-if="loading && canUseApi"
-      class="flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-[14px] border border-border-default bg-background-surface/90 py-16"
-    >
-      <Loader2
-        class="h-9 w-9 animate-spin text-accent-primary"
-        :stroke-width="2"
-      />
-      <p class="text-[13px] text-text-tertiary">Memuat kategori…</p>
-    </div>
+      variant="category"
+      :count="6"
+    />
 
-    <div
+    <EmptyState
       v-else-if="canUseApi && !items.length"
-      class="rounded-[14px] border border-dashed border-border-default bg-background-surface/80 px-6 py-14 text-center"
+      :icon="Tags"
+      title="Belum ada kategori"
+      description="Tambah kategori pertama untuk tipe ini agar transaksi lebih mudah dikelompokkan."
     >
-      <p class="text-[15px] font-medium text-text-primary">
-        Belum ada kategori
-      </p>
-      <p class="mt-2 text-[13px] text-text-secondary">
-        Tambah kategori pertama untuk tipe ini.
-      </p>
-    </div>
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-[10px] bg-gradient-to-br from-ds-orange-100 to-ds-orange-300 px-5 py-2.5 text-[13px] font-semibold text-white shadow-button-orange transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
+        :disabled="!canCreate"
+        @click="openCreate"
+      >
+        <Plus :size="16" :stroke-width="2" />
+        Tambah kategori
+      </button>
+    </EmptyState>
 
     <div
       v-else-if="canUseApi && items.length"
+      v-motion-fade
+      :delay="80"
+      :duration="550"
       class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
     >
       <CategoryCard
-        v-for="category in items"
+        v-for="(category, index) in items"
         :key="category.id"
+        v-motion-fade
+        :delay="100 + index * 50"
+        :duration="500"
         :category="category"
         @edit="openEdit"
         @delete="requestDelete"
@@ -268,22 +279,39 @@ function goNext() {
     </div>
 
     <div
-      v-if="canUseApi && meta.totalPages > 0"
+      v-if="canUseApi && meta.totalPages > 0 && !loading"
+      v-motion-fade
+      :delay="160"
+      :duration="500"
       class="flex flex-col items-center justify-between gap-4 border-t border-white/[0.06] pt-6 sm:flex-row"
     >
       <p class="text-[13px] text-text-tertiary">
         Menampilkan
-        <span class="font-mono tabular-nums text-text-secondary">{{
-          items.length ? (meta.page - 1) * meta.limit + 1 : 0
-        }}</span>
+        <span class="font-mono tabular-nums text-text-secondary">
+          <AnimatedNumber
+            :value="items.length ? (meta.page - 1) * meta.limit + 1 : 0"
+            format="number"
+            :duration="600"
+          />
+        </span>
         –
-        <span class="font-mono tabular-nums text-text-secondary">{{
-          Math.min(meta.page * meta.limit, meta.total)
-        }}</span>
+        <span class="font-mono tabular-nums text-text-secondary">
+          <AnimatedNumber
+            :value="Math.min(meta.page * meta.limit, meta.total)"
+            format="number"
+            :duration="600"
+            :delay="40"
+          />
+        </span>
         dari
-        <span class="font-mono tabular-nums text-text-secondary">{{
-          meta.total
-        }}</span>
+        <span class="font-mono tabular-nums text-text-secondary">
+          <AnimatedNumber
+            :value="meta.total"
+            format="number"
+            :duration="600"
+            :delay="80"
+          />
+        </span>
       </p>
       <div class="flex items-center gap-2">
         <button
@@ -295,7 +323,18 @@ function goNext() {
           Sebelumnya
         </button>
         <span class="min-w-[5rem] text-center font-mono text-[13px] tabular-nums text-text-secondary">
-          {{ meta.page }} / {{ meta.totalPages }}
+          <AnimatedNumber
+            :value="meta.page"
+            format="number"
+            :duration="500"
+          />
+          /
+          <AnimatedNumber
+            :value="meta.totalPages"
+            format="number"
+            :duration="500"
+            :delay="40"
+          />
         </span>
         <button
           type="button"

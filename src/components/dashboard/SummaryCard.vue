@@ -10,7 +10,7 @@ import {
   TrendingUp,
 } from 'lucide-vue-next'
 
-import { formatIndonesianRupiah } from '@/utils/formatIndonesianRupiah'
+import AnimatedNumber from '@/components/ui/AnimatedNumber.vue'
 
 const props = defineProps({
   variant: {
@@ -82,13 +82,6 @@ const isGoodChange = computed(() => {
   if (config.value.chipPositiveIsGood) return isUp.value
   return !isUp.value
 })
-
-const formattedAmount = computed(() => {
-  if (props.signedDisplay && props.amount < 0) {
-    return `−${formatIndonesianRupiah(Math.abs(props.amount))}`
-  }
-  return formatIndonesianRupiah(props.amount)
-})
 </script>
 
 <template>
@@ -139,7 +132,11 @@ const formattedAmount = computed(() => {
     <p
       class="relative mt-3 font-mono text-[22px] font-bold leading-tight tracking-[-0.01em] tabular-nums text-text-primary sm:text-[24px]"
     >
-      {{ formattedAmount }}
+      <AnimatedNumber
+        :value="amount"
+        :signed="signedDisplay"
+        :duration="900"
+      />
     </p>
 
     <div class="relative mt-2 flex items-center justify-between gap-2">

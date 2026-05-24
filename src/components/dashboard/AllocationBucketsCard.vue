@@ -4,7 +4,7 @@ import { computed } from 'vue'
 import { PiggyBank } from 'lucide-vue-next'
 
 import CategoryIcon from '@/components/categories/CategoryIcon.vue'
-import { formatIndonesianRupiah } from '@/utils/formatIndonesianRupiah'
+import AnimatedNumber from '@/components/ui/AnimatedNumber.vue'
 
 const props = defineProps({
   buckets: { type: Array, required: true },
@@ -124,19 +124,30 @@ const tierGradient = {
                 class="text-[12.5px] font-semibold tabular-nums"
                 :class="bucket.isCompleted ? 'text-emerald-400' : 'text-text-primary'"
               >
-                {{ bucket.percentDisplay }}%
+                <AnimatedNumber
+                  :value="bucket.percent"
+                  format="percent"
+                  :duration="800"
+                />
               </span>
             </div>
             <p
               class="font-mono text-[15px] font-bold leading-tight tabular-nums text-text-primary"
             >
-              {{ formatIndonesianRupiah(bucket.balance) }}
+              <AnimatedNumber
+                :value="bucket.balance"
+                :duration="850"
+              />
             </p>
             <p class="mt-0.5 text-[11.5px] text-text-tertiary">
               Target
-              <span class="font-mono font-medium tabular-nums text-text-secondary">{{
-                formatIndonesianRupiah(bucket.target)
-              }}</span>
+              <span class="font-mono font-medium tabular-nums text-text-secondary">
+                <AnimatedNumber
+                  :value="bucket.target"
+                  :duration="850"
+                  :delay="60"
+                />
+              </span>
             </p>
           </div>
         </div>
@@ -152,9 +163,13 @@ const tierGradient = {
         <div class="mt-2.5 flex flex-wrap items-center justify-between gap-1 text-[11.5px]">
           <span class="text-text-tertiary">
             Sisa target
-            <span class="font-mono font-medium tabular-nums text-text-secondary">{{
-              formatIndonesianRupiah(bucket.remaining)
-            }}</span>
+            <span class="font-mono font-medium tabular-nums text-text-secondary">
+              <AnimatedNumber
+                :value="bucket.remaining"
+                :duration="850"
+                :delay="100"
+              />
+            </span>
           </span>
         </div>
         </li>

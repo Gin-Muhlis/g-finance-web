@@ -1,12 +1,14 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 
-import { Loader2, Plus } from 'lucide-vue-next'
+import { Plus, Wallet } from 'lucide-vue-next'
 
 import WalletCard from '@/components/wallets/WalletCard.vue'
 import WalletFormModal from '@/components/wallets/WalletFormModal.vue'
 import WalletTransferModal from '@/components/wallets/WalletTransferModal.vue'
+import CardSkeletonGrid from '@/components/ui/CardSkeletonGrid.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { WALLET_TYPE_TABS } from '@/constants/walletTypes'
 import { walletTransfer } from '@/services/transactions'
 import {
@@ -267,6 +269,8 @@ async function handleWalletActiveChange(wallet, requestedIsActive) {
 <template>
   <div class="space-y-6">
     <div
+      v-motion-fade
+      :duration="500"
       class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
     >
       <div class="min-w-0 flex-1">
@@ -312,42 +316,50 @@ async function handleWalletActiveChange(wallet, requestedIsActive) {
 
     <div
       v-if="walletListErrorMessage"
+      v-motion-fade
+      :duration="400"
       role="alert"
       class="rounded-[14px] border border-negative/40 bg-negative/10 px-4 py-3 text-[13px] text-negative"
     >
       {{ walletListErrorMessage }}
     </div>
 
-    <div
+    <CardSkeletonGrid
       v-if="isWalletListLoading && canQueryWalletList"
-      class="flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-[14px] border border-border-default bg-background-surface/90 py-16"
-    >
-      <Loader2
-        class="h-9 w-9 animate-spin text-accent-primary"
-        :stroke-width="2"
-      />
-      <p class="text-[13px] text-text-tertiary">Memuat wallet…</p>
-    </div>
+      variant="wallet"
+      :count="6"
+    />
 
-    <div
+    <EmptyState
       v-else-if="canQueryWalletList && !walletRecords.length"
-      class="rounded-[14px] border border-dashed border-border-default bg-background-surface/80 px-6 py-14 text-center"
+      :icon="Wallet"
+      title="Belum ada wallet"
+      description="Tambah wallet pertama untuk tipe ini agar transaksi bisa dicatat ke sumber dana yang tepat."
     >
-      <p class="text-[15px] font-medium text-text-primary">
-        Belum ada wallet
-      </p>
-      <p class="mt-2 text-[13px] text-text-secondary">
-        Tambah wallet pertama untuk tipe ini.
-      </p>
-    </div>
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-[10px] bg-gradient-to-br from-ds-orange-100 to-ds-orange-300 px-5 py-2.5 text-[13px] font-semibold text-white shadow-button-orange transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
+        :disabled="!canCreateWalletForCurrentTab"
+        @click="openCreateWalletModal"
+      >
+        <Plus :size="16" :stroke-width="2" />
+        Tambah wallet
+      </button>
+    </EmptyState>
 
     <div
       v-else-if="canQueryWalletList && walletRecords.length"
+      v-motion-fade
+      :delay="80"
+      :duration="550"
       class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
     >
       <WalletCard
-        v-for="wallet in walletRecords"
+        v-for="(wallet, index) in walletRecords"
         :key="wallet.id"
+        v-motion-fade
+        :delay="100 + index * 50"
+        :duration="500"
         :wallet="wallet"
         :active-toggle-pending-wallet-id="activeTogglePendingWalletId"
         @edit="openEditWalletModal"

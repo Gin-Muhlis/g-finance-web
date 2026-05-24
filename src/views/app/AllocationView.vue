@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 
 import {
   ArrowRight,
-  Loader2,
   PiggyBank,
   Plus,
   Pencil,
@@ -13,7 +12,10 @@ import {
 import AllocationTransferModal from '@/components/allocations/AllocationTransferModal.vue'
 import BucketFormModal from '@/components/allocations/BucketFormModal.vue'
 import CategoryIcon from '@/components/categories/CategoryIcon.vue'
+import AnimatedNumber from '@/components/ui/AnimatedNumber.vue'
+import CardSkeleton from '@/components/ui/CardSkeleton.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import {
   createAllocation,
   getAllocationSummary,
@@ -27,7 +29,7 @@ import {
 } from '@/services/buckets'
 import { listWallets } from '@/services/wallets'
 import { useToastStore } from '@/stores/toast'
-import { formatIdrId, parseMoneyString } from '@/utils/moneyFormat.js'
+import { parseMoneyString } from '@/utils/moneyFormat.js'
 
 const toast = useToastStore()
 
@@ -320,6 +322,8 @@ loadAll()
   <div class="space-y-6">
     <!-- 1. Header -->
     <div
+      v-motion-fade
+      :duration="500"
       class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
     >
       <div class="min-w-0">
@@ -371,6 +375,9 @@ loadAll()
 
     <div
       v-else-if="!loading && summary"
+      v-motion-fade
+      :delay="80"
+      :duration="550"
       class="grid gap-3 sm:grid-cols-3"
     >
       <div
@@ -379,8 +386,11 @@ loadAll()
         <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
           Total saldo
         </p>
-        <p class="mt-1.5 text-[20px] font-semibold tabular-nums text-text-primary">
-          {{ formatIdrId(totalBalanceNum) }}
+        <p class="mt-1.5 font-mono text-[20px] font-semibold tabular-nums text-text-primary">
+          <AnimatedNumber
+            :value="totalBalanceNum"
+            :duration="900"
+          />
         </p>
         <p class="mt-0.5 text-[11px] text-text-tertiary">
           Semua dompet
@@ -392,8 +402,12 @@ loadAll()
         <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
           Total dialokasikan
         </p>
-        <p class="mt-1.5 text-[20px] font-semibold tabular-nums text-text-primary">
-          {{ formatIdrId(totalAllocatedNum) }}
+        <p class="mt-1.5 font-mono text-[20px] font-semibold tabular-nums text-text-primary">
+          <AnimatedNumber
+            :value="totalAllocatedNum"
+            :duration="900"
+            :delay="60"
+          />
         </p>
         <p class="mt-0.5 text-[11px] text-text-tertiary">
           Ke bucket
@@ -414,7 +428,7 @@ loadAll()
           Sisa bisa dialokasikan
         </p>
         <p
-          class="mt-1.5 text-[20px] font-semibold tabular-nums"
+          class="mt-1.5 font-mono text-[20px] font-semibold tabular-nums"
           :class="
             availableLow
               ? 'text-amber-300'
@@ -423,7 +437,12 @@ loadAll()
                 : 'text-negative'
           "
         >
-          {{ formatIdrId(availableNum) }}
+          <AnimatedNumber
+            :value="availableNum"
+            signed
+            :duration="900"
+            :delay="120"
+          />
         </p>
         <p
           class="mt-0.5 text-[11px]"
@@ -440,13 +459,18 @@ loadAll()
 
     <div
       v-if="loading"
-      class="flex min-h-[160px] items-center justify-center gap-2 rounded-[14px] border border-border-default bg-background-overlay py-12 text-text-secondary"
+      class="space-y-4"
+      aria-busy="true"
     >
-      <Loader2
-        class="h-5 w-5 animate-spin"
-        :stroke-width="2"
-      />
-      <span class="text-[13px]">Memuat…</span>
+      <div class="grid gap-3 sm:grid-cols-3">
+        <CardSkeleton variant="stat" />
+        <CardSkeleton variant="stat" />
+        <CardSkeleton variant="stat" />
+      </div>
+      <div class="grid gap-6 lg:grid-cols-2">
+        <CardSkeleton variant="list" />
+        <CardSkeleton variant="table" />
+      </div>
     </div>
 
     <template v-else-if="!error">
@@ -469,6 +493,9 @@ loadAll()
       </div>
 
       <div
+        v-motion-fade
+        :delay="120"
+        :duration="550"
         class="grid gap-6 pb-20 lg:grid-cols-2 lg:items-start lg:gap-8 lg:pb-0"
       >
         <!-- Bucket list -->
@@ -479,16 +506,24 @@ loadAll()
           <p class="mt-0.5 text-body-sm text-text-secondary">
             Tujuan pengelompokan dana. Diurutkan saldo terbesar.
           </p>
-          <ul class="mt-4 space-y-3">
+          <EmptyState
+            v-if="!sortedBuckets.length"
+            compact
+            :icon="PiggyBank"
+            title="Belum ada bucket"
+            description="Tambah bucket untuk mulai mengalokasikan dana ke tujuan tabungan."
+            class="mt-4"
+          />
+          <ul
+            v-else
+            class="mt-4 space-y-3"
+          >
             <li
-              v-if="!sortedBuckets.length"
-              class="rounded-[14px] border border-dashed border-border-default bg-background-overlay px-4 py-8 text-center text-body-sm text-text-tertiary"
-            >
-              Belum ada bucket. Tambah untuk memulai.
-            </li>
-            <li
-              v-for="b in sortedBuckets"
+              v-for="(b, bucketIndex) in sortedBuckets"
               :key="b.id"
+              v-motion-fade
+              :delay="160 + bucketIndex * 50"
+              :duration="500"
               class="rounded-[14px] border border-border-default bg-background-surface/85 p-4 shadow-card-default"
               :class="bucketCardClass(b)"
             >
@@ -509,19 +544,32 @@ loadAll()
                   <p class="mt-0.5 text-body-sm text-text-secondary">
                     Saldo bucket:
                     <span class="font-mono font-medium tabular-nums text-text-primary">
-                      {{ formatIdrId(parseMoneyString(b.balance)) }}
+                      <AnimatedNumber
+                        :value="parseMoneyString(b.balance)"
+                        :duration="850"
+                      />
                     </span>
                   </p>
                   <p
                     v-if="b.targetAmount != null && String(b.targetAmount) !== ''"
                     class="text-[12px] text-text-tertiary"
                   >
-                    Target: {{ formatIdrId(parseMoneyString(b.targetAmount)) }}
+                    Target:
+                    <AnimatedNumber
+                      :value="parseMoneyString(b.targetAmount)"
+                      :duration="850"
+                      :delay="40"
+                    />
                     <span
                       v-if="bucketProgressPercent(b) != null"
                       class="ml-1 tabular-nums text-text-secondary"
                     >
-                      ({{ bucketProgressPercent(b) }}%)
+                      (<AnimatedNumber
+                        :value="bucketProgressPercent(b)"
+                        format="percent"
+                        :duration="800"
+                        :delay="60"
+                      />)
                     </span>
                   </p>
                   <div
@@ -615,16 +663,23 @@ loadAll()
               class="min-h-[40px] rounded-input border border-border-default bg-ds-black-400/80 px-2 text-[13px] text-text-primary [color-scheme:dark]"
             >
           </div>
-          <ul class="mt-4 space-y-2">
+          <EmptyState
+            v-if="!filteredHistory.length"
+            compact
+            title="Belum ada riwayat alokasi"
+            description="Riwayat transfer ke bucket akan muncul setelah Anda mengalokasikan dana."
+            class="mt-4"
+          />
+          <ul
+            v-else
+            class="mt-4 space-y-2"
+          >
             <li
-              v-if="!filteredHistory.length"
-              class="rounded-[14px] border border-dashed border-border-default px-4 py-8 text-center text-[13px] text-text-tertiary"
-            >
-              Belum ada riwayat.
-            </li>
-            <li
-              v-for="row in filteredHistory"
+              v-for="(row, rowIndex) in filteredHistory"
               :key="row.id"
+              v-motion-fade
+              :delay="120 + rowIndex * 35"
+              :duration="450"
               class="rounded-[12px] border border-border-default bg-ds-black-300/50 px-3 py-2.5"
             >
               <div class="flex items-start justify-between gap-2">
@@ -661,11 +716,15 @@ loadAll()
                   </p>
                 </div>
                 <p
-                  class="shrink-0 text-right text-[15px] font-semibold tabular-nums"
+                  class="shrink-0 text-right font-mono text-[15px] font-semibold tabular-nums"
                   :class="row.isAllocationWithdraw ? 'text-ds-purple-400' : 'text-positive'"
                 >
-                  {{ row.isAllocationWithdraw ? '−' : '+'
-                  }}{{ formatIdrId(Math.abs(parseMoneyString(row.amount))) }}
+                  <template v-if="row.isAllocationWithdraw">−</template>
+                  <template v-else>+</template>
+                  <AnimatedNumber
+                    :value="Math.abs(parseMoneyString(row.amount))"
+                    :duration="750"
+                  />
                 </p>
               </div>
             </li>

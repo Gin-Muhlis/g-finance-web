@@ -2,11 +2,11 @@
 import { computed, ref, watch } from 'vue'
 
 import {
+  ArrowLeftRight,
   CalendarRange,
   ChevronLeft,
   ChevronRight,
   ListFilter,
-  Loader2,
   Plus,
 } from 'lucide-vue-next'
 
@@ -14,11 +14,14 @@ import CategoryIcon from '@/components/categories/CategoryIcon.vue'
 import TransactionFilterModal from '@/components/transactions/TransactionFilterModal.vue'
 import TransactionFormModal from '@/components/transactions/TransactionFormModal.vue'
 import WalletIcon from '@/components/transactions/WalletIcon.vue'
+import AnimatedNumber from '@/components/ui/AnimatedNumber.vue'
+import CardSkeleton from '@/components/ui/CardSkeleton.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { listCategories } from '@/services/categories'
 import { listTransactions } from '@/services/transactions'
 import { listWallets } from '@/services/wallets'
 import { useToastStore } from '@/stores/toast'
-import { formatIdrId, parseMoneyString } from '@/utils/moneyFormat.js'
+import { parseMoneyString } from '@/utils/moneyFormat.js'
 
 const toast = useToastStore()
 
@@ -312,6 +315,8 @@ const defaultDateForModal = computed(() => {
 <template>
   <div class="space-y-6">
     <div
+      v-motion-fade
+      :duration="500"
       class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
     >
       <div
@@ -419,6 +424,9 @@ const defaultDateForModal = computed(() => {
 
     <div
       v-if="!loading && !error"
+      v-motion-fade
+      :delay="80"
+      :duration="550"
       class="grid gap-3 sm:grid-cols-2"
     >
       <div
@@ -430,9 +438,12 @@ const defaultDateForModal = computed(() => {
           Total pemasukan
         </p>
         <p
-          class="mt-1.5 text-[22px] font-semibold tabular-nums text-positive"
+          class="mt-1.5 font-mono text-[22px] font-semibold tabular-nums text-positive"
         >
-          {{ formatIdrId(totalIncomeNum) }}
+          <AnimatedNumber
+            :value="totalIncomeNum"
+            :duration="900"
+          />
         </p>
       </div>
       <div
@@ -444,52 +455,53 @@ const defaultDateForModal = computed(() => {
           Total pengeluaran
         </p>
         <p
-          class="mt-1.5 text-[22px] font-semibold tabular-nums text-negative"
+          class="mt-1.5 font-mono text-[22px] font-semibold tabular-nums text-negative"
         >
-          {{ formatIdrId(totalExpenseNum) }}
+          <AnimatedNumber
+            :value="totalExpenseNum"
+            :duration="900"
+            :delay="60"
+          />
         </p>
       </div>
     </div>
 
     <div
       v-if="loading"
-      class="flex items-center justify-center gap-2 rounded-[14px] border border-border-default bg-background-overlay py-16 text-text-secondary"
+      class="space-y-4"
+      aria-busy="true"
     >
-      <Loader2
-        class="h-5 w-5 shrink-0 animate-spin"
-        :stroke-width="2"
-      />
-      <span class="text-[13px]">Memuat transaksi…</span>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <CardSkeleton variant="stat" />
+        <CardSkeleton variant="stat" />
+      </div>
+      <CardSkeleton variant="list" />
+      <CardSkeleton variant="list" />
     </div>
 
     <div
       v-else-if="!error"
+      v-motion-fade
+      :delay="120"
+      :duration="550"
       class="space-y-5"
     >
-      <div
+      <EmptyState
         v-if="!transactionsByDay.length"
-        class="rounded-[14px] border border-dashed border-border-default bg-background-overlay px-4 py-12 text-center"
-      >
-        <p class="text-[14px] text-text-secondary">
-          {{
-            hasActiveFilters
-              ? 'Tidak ada transaksi yang cocok dengan filter.'
-              : 'Belum ada transaksi di bulan ini.'
-          }}
-        </p>
-        <p class="mt-1 text-[13px] text-text-tertiary">
-          {{
-            hasActiveFilters
-              ? 'Ubah filter atau hapus filter untuk melihat lebih banyak data.'
-              : 'Tambah pemasukan atau pengeluaran dengan tombol di atas.'
-          }}
-        </p>
-      </div>
+        :icon="ArrowLeftRight"
+        :title="hasActiveFilters ? 'Tidak ada transaksi yang cocok' : 'Belum ada transaksi di bulan ini'"
+        :description="hasActiveFilters
+          ? 'Ubah filter atau hapus filter untuk melihat lebih banyak data.'
+          : 'Tambah pemasukan atau pengeluaran dengan tombol di atas.'"
+      />
 
       <template v-else>
         <section
-          v-for="day in daysWithStats"
+          v-for="(day, dayIndex) in daysWithStats"
           :key="day.transactionDate"
+          v-motion-fade
+          :delay="140 + dayIndex * 60"
+          :duration="500"
           class="overflow-hidden rounded-[14px] border border-border-default bg-background-overlay shadow-card-default"
         >
         <div
@@ -500,18 +512,31 @@ const defaultDateForModal = computed(() => {
               {{ formatDayHeader(day.transactionDate) }}
             </h3>
             <p class="text-[12px] text-text-tertiary">
-              {{ day.stats.count }} transaksi
+              <AnimatedNumber
+                :value="day.stats.count"
+                format="number"
+                :duration="600"
+              />
+              transaksi
               <span
                 v-if="day.stats.income > 0"
                 class="text-positive"
               >
-                · +{{ formatIdrId(day.stats.income) }}
+                · +<AnimatedNumber
+                  :value="day.stats.income"
+                  :duration="700"
+                  :delay="40"
+                />
               </span>
               <span
                 v-if="day.stats.expense > 0"
                 class="text-negative"
               >
-                · −{{ formatIdrId(day.stats.expense) }}
+                · −<AnimatedNumber
+                  :value="day.stats.expense"
+                  :duration="700"
+                  :delay="60"
+                />
               </span>
             </p>
           </div>
@@ -582,7 +607,7 @@ const defaultDateForModal = computed(() => {
               class="shrink-0 self-center text-right"
             >
               <p
-                class="text-[15px] font-semibold tabular-nums"
+                class="font-mono text-[15px] font-semibold tabular-nums"
                 :class="
                   t.type === 'transfer'
                     ? 'text-text-primary'
@@ -592,11 +617,22 @@ const defaultDateForModal = computed(() => {
                 "
               >
                 <template v-if="t.type === 'transfer'">
-                  {{ formatIdrId(parseMoneyString(t.amount)) }}
+                  <AnimatedNumber
+                    :value="parseMoneyString(t.amount)"
+                    :duration="750"
+                  />
+                </template>
+                <template v-else-if="t.type === 'income'">
+                  +<AnimatedNumber
+                    :value="parseMoneyString(t.amount)"
+                    :duration="750"
+                  />
                 </template>
                 <template v-else>
-                  {{ t.type === 'income' ? '+' : '−'
-                  }}{{ formatIdrId(parseMoneyString(t.amount)) }}
+                  −<AnimatedNumber
+                    :value="parseMoneyString(t.amount)"
+                    :duration="750"
+                  />
                 </template>
               </p>
             </div>

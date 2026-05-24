@@ -11,7 +11,7 @@ import {
   Wallet,
 } from 'lucide-vue-next'
 
-import { formatIndonesianRupiah } from '@/utils/formatIndonesianRupiah'
+import AnimatedNumber from '@/components/ui/AnimatedNumber.vue'
 import { getCategoryIconComponent } from '@/utils/categoryIconMap'
 
 const props = defineProps({
@@ -97,7 +97,10 @@ function onToggleClick() {
         <p
           class="mt-1 font-mono text-[18px] font-semibold tabular-nums tracking-tight text-text-primary"
         >
-          {{ formatIndonesianRupiah(wallet.balance) }}
+          <AnimatedNumber
+            :value="Number(wallet.balance || 0)"
+            :duration="850"
+          />
         </p>
       </div>
 

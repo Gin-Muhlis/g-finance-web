@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
+    "@vueuse/motion": "^3.0.3",
     "axios": "^1.13.2",
     "lucide-vue-next": "^0.562.0",
     "pinia": "^3.0.4",

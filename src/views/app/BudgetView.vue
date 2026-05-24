@@ -12,13 +12,13 @@ import {
 
 import BudgetFormModal from '@/components/budget/BudgetFormModal.vue'
 import CategoryIcon from '@/components/categories/CategoryIcon.vue'
+import AnimatedNumber from '@/components/ui/AnimatedNumber.vue'
+import CardSkeleton from '@/components/ui/CardSkeleton.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import { useCountUp } from '@/composables/useCountUp'
 import { getBudgetItems, getBudgetSummary, putBudget } from '@/services/budgets'
 import { useToastStore } from '@/stores/toast'
-import {
-  formatIdrId,
-  formatIdrShort,
-  parseMoneyString,
-} from '@/utils/moneyFormat.js'
+import { parseMoneyString } from '@/utils/moneyFormat.js'
 
 const toast = useToastStore()
 
@@ -111,6 +111,11 @@ const overallDisplayPercent = computed(() =>
 
 const overallBarWidth = computed(() =>
   Math.min(100, overallRatio.value * 100),
+)
+
+const { displayValue: animatedOverallBarWidth } = useCountUp(
+  () => overallBarWidth.value,
+  { duration: 800, delay: 150 },
 )
 
 /**
@@ -381,6 +386,8 @@ async function onModalSubmit(body) {
   <div class="space-y-6">
     <!-- SECTION 1: Header + summary -->
     <div
+      v-motion-fade
+      :duration="500"
       class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
     >
       <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
@@ -439,6 +446,9 @@ async function onModalSubmit(body) {
 
     <div
       v-if="summary && !loading"
+      v-motion-fade
+      :delay="80"
+      :duration="550"
       class="grid gap-3 sm:grid-cols-3"
     >
       <div
@@ -447,8 +457,11 @@ async function onModalSubmit(body) {
         <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
           Total dianggarkan
         </p>
-        <p class="mt-1.5 text-[20px] font-semibold tabular-nums text-text-primary">
-          {{ formatIdrId(totalAllocated) }}
+        <p class="mt-1.5 font-mono text-[20px] font-semibold tabular-nums text-text-primary">
+          <AnimatedNumber
+            :value="totalAllocated"
+            :duration="900"
+          />
         </p>
       </div>
       <div
@@ -457,8 +470,12 @@ async function onModalSubmit(body) {
         <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
           Terpakai
         </p>
-        <p class="mt-1.5 text-[20px] font-semibold tabular-nums text-text-primary">
-          {{ formatIdrId(totalActual) }}
+        <p class="mt-1.5 font-mono text-[20px] font-semibold tabular-nums text-text-primary">
+          <AnimatedNumber
+            :value="totalActual"
+            :duration="900"
+            :delay="60"
+          />
         </p>
       </div>
       <div
@@ -473,10 +490,15 @@ async function onModalSubmit(body) {
           Sisa
         </p>
         <p
-          class="mt-1.5 text-[20px] font-semibold tabular-nums"
+          class="mt-1.5 font-mono text-[20px] font-semibold tabular-nums"
           :class="totalRemaining < 0 ? 'text-negative' : 'text-text-primary'"
         >
-          {{ formatIdrId(totalRemaining) }}
+          <AnimatedNumber
+            :value="totalRemaining"
+            signed
+            :duration="900"
+            :delay="120"
+          />
         </p>
       </div>
     </div>
@@ -500,14 +522,24 @@ async function onModalSubmit(body) {
 
     <div
       v-if="loading"
-      class="flex min-h-[220px] items-center justify-center rounded-[14px] border border-border-default bg-ds-black-300/50 py-20"
+      class="space-y-4"
+      aria-busy="true"
     >
-      <p class="text-[13px] text-text-tertiary">Memuat budget…</p>
+      <div class="grid gap-3 sm:grid-cols-3">
+        <CardSkeleton variant="stat" />
+        <CardSkeleton variant="stat" />
+        <CardSkeleton variant="stat" />
+      </div>
+      <CardSkeleton variant="hero" />
+      <CardSkeleton variant="list" />
     </div>
 
     <template v-else-if="summary && !error">
       <!-- SECTION 2: Hero card -->
       <div
+        v-motion-fade
+        :delay="120"
+        :duration="550"
         class="rounded-[14px] border border-border-default bg-ds-black-300/60 p-5 shadow-card-elevated sm:p-6"
       >
         <p class="text-[12px] font-medium uppercase tracking-[0.1em] text-text-tertiary">
@@ -525,16 +557,28 @@ async function onModalSubmit(body) {
               class="text-[28px] font-bold tabular-nums leading-none sm:text-[32px]"
               :class="mainPercentTextClass"
             >
-              {{ overallDisplayPercent }}%
+              <AnimatedNumber
+                :value="overallDisplayPercent"
+                format="percent"
+                :duration="900"
+              />
             </p>
             <p class="text-right text-body-sm text-text-secondary">
-              <span class="font-mono font-semibold text-text-primary">{{
-                formatIdrShort(totalActual)
-              }}</span>
+              <span class="font-mono font-semibold text-text-primary">
+                <AnimatedNumber
+                  :value="totalActual"
+                  :duration="850"
+                  :delay="60"
+                />
+              </span>
               <span class="text-text-tertiary"> / </span>
-              <span class="font-mono font-semibold text-text-primary">{{
-                formatIdrShort(totalAllocated)
-              }}</span>
+              <span class="font-mono font-semibold text-text-primary">
+                <AnimatedNumber
+                  :value="totalAllocated"
+                  :duration="850"
+                  :delay="100"
+                />
+              </span>
               <span class="block text-[11px] text-text-tertiary"
                 >terpakai / dianggarkan</span
               >
@@ -546,24 +590,28 @@ async function onModalSubmit(body) {
             <div
               class="h-full rounded-full bg-gradient-to-r transition-[width] duration-500 ease-out"
               :class="mainBarClass"
-              :style="{ width: `${overallBarWidth}%` }"
+              :style="{ width: `${animatedOverallBarWidth}%` }"
             />
           </div>
         </div>
         <div
           v-else
-          class="mt-4 rounded-[10px] border border-dashed border-border-default bg-background-overlay/60 px-4 py-5 text-center"
+          class="mt-4"
         >
-          <p class="text-body-sm text-text-secondary">
-            Belum ada alokasi untuk bulan ini. Klik
-            <span class="font-medium text-text-primary">Tambah budget</span>
-            untuk memulai.
-          </p>
+          <EmptyState
+            compact
+            title="Belum ada alokasi bulan ini"
+            description="Klik Tambah budget untuk menetapkan batas pengeluaran per kategori."
+          />
         </div>
       </div>
 
       <!-- SECTION 3: per category -->
-      <div>
+      <div
+        v-motion-fade
+        :delay="180"
+        :duration="550"
+      >
         <h2 class="text-[16px] font-semibold text-text-primary">
           Per kategori
         </h2>
@@ -598,8 +646,11 @@ async function onModalSubmit(body) {
             class="space-y-3"
           >
             <li
-              v-for="line in budgetItems"
+              v-for="(line, lineIndex) in budgetItems"
               :key="line.category.id"
+              v-motion-fade
+              :delay="200 + lineIndex * 40"
+              :duration="500"
               class="rounded-[14px] border border-border-default bg-background-surface/85 p-4 shadow-card-default"
               :class="
                 line.isOverBudget
@@ -643,9 +694,13 @@ async function onModalSubmit(body) {
                       class="text-[15px] font-semibold tabular-nums"
                       :class="lineProgressPercentTextClass(line)"
                     >
-                      {{ line.progressPercent != null
-                        ? `${line.progressPercent}%`
-                        : '—' }}
+                      <AnimatedNumber
+                        v-if="line.progressPercent != null"
+                        :value="line.progressPercent"
+                        format="percent"
+                        :duration="800"
+                      />
+                      <template v-else>—</template>
                     </span>
                     <span
                       v-if="line.isOverBudget"
@@ -666,15 +721,22 @@ async function onModalSubmit(body) {
                   <span class="text-text-secondary">
                     Alokasi:
                     <span class="font-mono text-text-primary tabular-nums">
-                      {{ line.hasBudget
-                        ? formatIdrId(parseMoneyString(line.allocatedAmount))
-                        : '—' }}
+                      <AnimatedNumber
+                        v-if="line.hasBudget"
+                        :value="parseMoneyString(line.allocatedAmount)"
+                        :duration="800"
+                      />
+                      <template v-else>—</template>
                     </span>
                   </span>
                   <span class="text-text-secondary">
                     Aktual:
                     <span class="font-mono text-text-primary tabular-nums">
-                      {{ formatIdrId(parseMoneyString(line.actualAmount)) }}
+                      <AnimatedNumber
+                        :value="parseMoneyString(line.actualAmount)"
+                        :duration="800"
+                        :delay="40"
+                      />
                     </span>
                   </span>
                   <span
@@ -686,7 +748,12 @@ async function onModalSubmit(body) {
                       class="font-mono font-medium tabular-nums"
                       :class="remainingAmountClass(line)"
                     >
-                      {{ formatIdrId(lineRemainingIdr(line) ?? 0) }}
+                      <AnimatedNumber
+                        :value="lineRemainingIdr(line) ?? 0"
+                        signed
+                        :duration="800"
+                        :delay="80"
+                      />
                     </span>
                   </span>
                 </div>
@@ -719,12 +786,12 @@ async function onModalSubmit(body) {
             </div>
           </li>
           </ul>
-          <p
+          <EmptyState
             v-else-if="!itemsError"
-            class="rounded-[14px] border border-dashed border-border-default px-4 py-8 text-center text-[13px] text-text-tertiary"
-          >
-            Tidak ada baris untuk ditampilkan.
-          </p>
+            compact
+            title="Tidak ada kategori untuk ditampilkan"
+            description="Pastikan kategori pengeluaran sudah dibuat, lalu atur alokasi budget bulan ini."
+          />
         </div>
         <div
           v-if="itemsPagination.totalPages > 1"

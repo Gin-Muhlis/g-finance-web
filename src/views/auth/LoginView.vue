@@ -20,6 +20,8 @@ const showRegisteredNotice = computed(
 )
 
 async function onSubmit() {
+  if (submitting.value) return
+
   errorMessage.value = ''
   submitting.value = true
   try {
@@ -37,7 +39,6 @@ async function onSubmit() {
     const msg = err?.response?.data?.message
     errorMessage.value =
       typeof msg === 'string' ? msg : 'Email atau kata sandi tidak valid.'
-  } finally {
     submitting.value = false
   }
 }
@@ -54,6 +55,8 @@ async function onSubmit() {
 
     <div class="relative z-10 w-full max-w-[400px]">
       <router-link
+        v-motion-fade-down
+        :duration="600"
         to="/"
         class="mb-8 flex items-center justify-center gap-2 text-text-secondary transition-colors hover:text-text-primary"
       >
@@ -68,12 +71,25 @@ async function onSubmit() {
       </router-link>
 
       <div
+        v-motion-pop-in
+        :delay="120"
+        :duration="650"
         class="rounded-[18px] border border-border-default bg-ds-black-300/90 p-8 shadow-card-elevated backdrop-blur-md"
       >
-        <h1 class="text-center text-[22px] font-semibold leading-tight tracking-[-0.01em] text-text-primary">
+        <h1
+          v-motion-fade-up
+          :delay="280"
+          :duration="600"
+          class="text-center text-[22px] font-semibold leading-tight tracking-[-0.01em] text-text-primary"
+        >
           Masuk
         </h1>
-        <p class="mt-2 text-center text-body-sm text-text-secondary">
+        <p
+          v-motion-fade-up
+          :delay="360"
+          :duration="600"
+          class="mt-2 text-center text-body-sm text-text-secondary"
+        >
           Belum punya akun?
           <router-link
             to="/register"
@@ -86,16 +102,32 @@ async function onSubmit() {
         <form class="mt-8 space-y-4" @submit.prevent="onSubmit">
           <div
             v-if="showRegisteredNotice"
+            v-motion
+            :initial="{ opacity: 0, y: -8, scale: 0.98 }"
+            :enter="{ opacity: 1, y: 0, scale: 1 }"
+            :duration="400"
             role="status"
             class="rounded-md border border-positive/35 bg-positive/10 px-3 py-2 text-[13px] text-positive"
           >
             Pendaftaran berhasil. Silakan masuk dengan akun Anda.
           </div>
-          <div v-if="errorMessage" role="alert" class="rounded-md border border-negative/40 bg-negative/10 px-3 py-2 text-[13px] text-negative">
+          <div
+            v-if="errorMessage"
+            v-motion
+            :initial="{ opacity: 0, y: -8, scale: 0.98 }"
+            :enter="{ opacity: 1, y: 0, scale: 1 }"
+            :duration="400"
+            role="alert"
+            class="rounded-md border border-negative/40 bg-negative/10 px-3 py-2 text-[13px] text-negative"
+          >
             {{ errorMessage }}
           </div>
 
-          <div>
+          <div
+            v-motion-fade-up
+            :delay="440"
+            :duration="550"
+          >
             <label
               for="login-email"
               class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.06em] text-text-tertiary"
@@ -113,7 +145,11 @@ async function onSubmit() {
             />
           </div>
 
-          <div>
+          <div
+            v-motion-fade-up
+            :delay="510"
+            :duration="550"
+          >
             <label
               for="login-password"
               class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.06em] text-text-tertiary"
@@ -131,7 +167,12 @@ async function onSubmit() {
             />
           </div>
 
-          <div class="flex items-center gap-3 pt-1">
+          <div
+            v-motion-fade-up
+            :delay="580"
+            :duration="550"
+            class="flex items-center gap-3 pt-1"
+          >
             <label
               for="login-remember"
               class="flex cursor-pointer select-none items-center gap-2"
@@ -160,9 +201,17 @@ async function onSubmit() {
           </div>
 
           <button
+            v-motion
+            :initial="{ opacity: 0, y: 24 }"
+            :enter="{ opacity: 1, y: 0 }"
+            :hovered="{ scale: submitting ? 1 : 1.02, y: submitting ? 0 : -1 }"
+            :tapped="{ scale: submitting ? 1 : 0.98 }"
+            :delay="650"
+            :duration="550"
             type="submit"
             :disabled="submitting"
-            class="mt-2 w-full rounded-[10px] bg-gradient-to-br from-ds-orange-100 to-ds-orange-300 py-2.5 text-[14px] font-semibold text-white shadow-button-orange transition-all duration-180 hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ds-black-300"
+            :aria-busy="submitting"
+            class="mt-2 w-full rounded-[10px] bg-gradient-to-br from-ds-orange-100 to-ds-orange-300 py-2.5 text-[14px] font-semibold text-white shadow-button-orange transition-opacity duration-180 hover:opacity-95 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ds-black-300"
           >
             {{ submitting ? 'Memproses…' : 'Masuk' }}
           </button>

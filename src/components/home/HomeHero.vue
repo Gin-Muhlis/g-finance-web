@@ -32,6 +32,8 @@ const appStore = useAppStore()
     />
 
     <header
+      v-motion-fade-down
+      :duration="700"
       class="relative z-20 flex h-[52px] shrink-0 items-center justify-between border-b border-white/[0.06] bg-ds-black-200/80 px-4 backdrop-blur-md sm:px-8"
     >
       <div class="flex items-center gap-2">
@@ -72,6 +74,9 @@ const appStore = useAppStore()
       class="relative z-10 flex flex-1 flex-col items-center justify-center px-4 pb-16 pt-8 sm:px-6 lg:px-8"
     >
       <div
+        v-motion-slide-left
+        :delay="900"
+        :duration="900"
         class="pointer-events-none absolute left-[4%] top-[28%] hidden w-[200px] rotate-[-8deg] rounded-2xl border border-white/10 bg-[rgba(255,255,255,0.06)] p-4 shadow-card-elevated backdrop-blur-xl xl:block"
         aria-hidden="true"
       >
@@ -105,6 +110,9 @@ const appStore = useAppStore()
         </div>
       </div>
       <div
+        v-motion-slide-right
+        :delay="1100"
+        :duration="900"
         class="pointer-events-none absolute right-[5%] top-[32%] hidden w-[220px] rotate-[7deg] rounded-2xl border border-border-accent-purple bg-[linear-gradient(135deg,rgba(138,47,201,0.12)_0%,rgba(255,255,255,0.04)_100%)] p-4 shadow-glow-purple-ambient backdrop-blur-xl xl:block"
         aria-hidden="true"
       >
@@ -130,6 +138,9 @@ const appStore = useAppStore()
 
       <div class="relative mx-auto flex max-w-[1200px] flex-col items-center text-center">
         <div
+          v-motion-pop-in
+          :delay="200"
+          :duration="600"
           class="mb-6 inline-flex items-center gap-2 rounded-full border border-border-default bg-background-overlay px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-secondary shadow-card-default"
         >
           <Sparkles
@@ -142,6 +153,9 @@ const appStore = useAppStore()
 
         <h1
           id="hero-heading"
+          v-motion-fade-up
+          :delay="350"
+          :duration="800"
           class="max-w-4xl text-balance text-[2rem] font-bold leading-[1.1] tracking-[-0.02em] sm:text-[2.5rem] lg:text-[48px]"
         >
           <span class="text-text-primary">Kendalikan </span>
@@ -156,6 +170,9 @@ const appStore = useAppStore()
         </h1>
 
         <p
+          v-motion-fade-up
+          :delay="500"
+          :duration="800"
           class="mt-6 max-w-2xl text-[15px] leading-relaxed text-text-secondary sm:text-body-lg"
         >
           Lacak transaksi, kelola kategori dan wallet, dan baca laporan keuangan
@@ -164,11 +181,20 @@ const appStore = useAppStore()
         </p>
 
         <div
+          v-motion
+          :initial="{ opacity: 0, y: 32 }"
+          :enter="{ opacity: 1, y: 0 }"
+          :delay="650"
+          :duration="800"
           class="mt-10 flex w-full max-w-md flex-col items-stretch gap-3 sm:max-w-none sm:w-auto sm:flex-row sm:items-center sm:justify-center sm:gap-4"
         >
           <router-link
+            v-motion
+            :hovered="{ scale: 1.04, y: -2 }"
+            :tapped="{ scale: 0.98 }"
+            :duration="250"
             to="/register"
-            class="group inline-flex items-center justify-center gap-2 rounded-[10px] bg-gradient-to-br from-ds-orange-100 to-ds-orange-300 px-7 py-3.5 text-[14px] font-semibold text-white shadow-button-orange transition-all duration-180 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.02] hover:shadow-[0_6px_28px_rgba(255,80,0,0.55)] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background-base"
+            class="group inline-flex items-center justify-center gap-2 rounded-[10px] bg-gradient-to-br from-ds-orange-100 to-ds-orange-300 px-7 py-3.5 text-[14px] font-semibold text-white shadow-button-orange transition-shadow duration-180 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-[0_6px_28px_rgba(255,80,0,0.55)] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background-base"
           >
             Daftar sekarang
             <ArrowRight
@@ -178,8 +204,12 @@ const appStore = useAppStore()
             />
           </router-link>
           <router-link
+            v-motion
+            :hovered="{ scale: 1.03, backgroundColor: 'rgba(255,255,255,0.14)' }"
+            :tapped="{ scale: 0.98 }"
+            :duration="250"
             to="/login"
-            class="inline-flex items-center justify-center rounded-[10px] border border-white/10 bg-white/[0.08] px-7 py-3.5 text-[14px] font-semibold text-white/90 transition-colors duration-180 hover:bg-white/[0.12] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background-base"
+            class="inline-flex items-center justify-center rounded-[10px] border border-white/10 bg-white/[0.08] px-7 py-3.5 text-[14px] font-semibold text-white/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background-base"
           >
             Masuk
           </router-link>

@@ -22,6 +22,8 @@ const passwordMismatch = computed(
 )
 
 async function onSubmit() {
+  if (submitting.value) return
+
   errorMessage.value = ''
   if (password.value !== passwordConfirm.value) {
     errorMessage.value = 'Konfirmasi kata sandi tidak cocok.'
@@ -50,7 +52,6 @@ async function onSubmit() {
     } else {
       errorMessage.value = 'Pendaftaran gagal. Periksa data Anda.'
     }
-  } finally {
     submitting.value = false
   }
 }
@@ -67,6 +68,8 @@ async function onSubmit() {
 
     <div class="relative z-10 w-full max-w-[400px]">
       <router-link
+        v-motion-fade-down
+        :duration="600"
         to="/"
         class="mb-8 flex items-center justify-center gap-2 text-text-secondary transition-colors hover:text-text-primary"
       >
@@ -81,12 +84,25 @@ async function onSubmit() {
       </router-link>
 
       <div
+        v-motion-pop-in
+        :delay="120"
+        :duration="650"
         class="rounded-[18px] border border-border-default bg-ds-black-300/90 p-8 shadow-card-elevated backdrop-blur-md"
       >
-        <h1 class="text-center text-[22px] font-semibold leading-tight tracking-[-0.01em] text-text-primary">
+        <h1
+          v-motion-fade-up
+          :delay="280"
+          :duration="600"
+          class="text-center text-[22px] font-semibold leading-tight tracking-[-0.01em] text-text-primary"
+        >
           Daftar akun
         </h1>
-        <p class="mt-2 text-center text-body-sm text-text-secondary">
+        <p
+          v-motion-fade-up
+          :delay="360"
+          :duration="600"
+          class="mt-2 text-center text-body-sm text-text-secondary"
+        >
           Sudah punya akun?
           <router-link
             to="/login"
@@ -97,11 +113,23 @@ async function onSubmit() {
         </p>
 
         <form class="mt-8 space-y-4" @submit.prevent="onSubmit">
-          <div v-if="errorMessage" role="alert" class="rounded-md border border-negative/40 bg-negative/10 px-3 py-2 text-[13px] text-negative">
+          <div
+            v-if="errorMessage"
+            v-motion
+            :initial="{ opacity: 0, y: -8, scale: 0.98 }"
+            :enter="{ opacity: 1, y: 0, scale: 1 }"
+            :duration="400"
+            role="alert"
+            class="rounded-md border border-negative/40 bg-negative/10 px-3 py-2 text-[13px] text-negative"
+          >
             {{ errorMessage }}
           </div>
 
-          <div>
+          <div
+            v-motion-fade-up
+            :delay="440"
+            :duration="550"
+          >
             <label
               for="reg-name"
               class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.06em] text-text-tertiary"
@@ -120,7 +148,11 @@ async function onSubmit() {
             />
           </div>
 
-          <div>
+          <div
+            v-motion-fade-up
+            :delay="500"
+            :duration="550"
+          >
             <label
               for="reg-email"
               class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.06em] text-text-tertiary"
@@ -138,7 +170,11 @@ async function onSubmit() {
             />
           </div>
 
-          <div>
+          <div
+            v-motion-fade-up
+            :delay="560"
+            :duration="550"
+          >
             <label
               for="reg-password"
               class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.06em] text-text-tertiary"
@@ -158,7 +194,11 @@ async function onSubmit() {
             />
           </div>
 
-          <div>
+          <div
+            v-motion-fade-up
+            :delay="620"
+            :duration="550"
+          >
             <label
               for="reg-password-confirm"
               class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.06em] text-text-tertiary"
@@ -180,9 +220,17 @@ async function onSubmit() {
           </div>
 
           <button
+            v-motion
+            :initial="{ opacity: 0, y: 24 }"
+            :enter="{ opacity: 1, y: 0 }"
+            :hovered="{ scale: submitting || passwordMismatch ? 1 : 1.02, y: submitting || passwordMismatch ? 0 : -1 }"
+            :tapped="{ scale: submitting || passwordMismatch ? 1 : 0.98 }"
+            :delay="690"
+            :duration="550"
             type="submit"
             :disabled="submitting || passwordMismatch"
-            class="mt-2 w-full rounded-[10px] bg-gradient-to-br from-ds-orange-100 to-ds-orange-300 py-2.5 text-[14px] font-semibold text-white shadow-button-orange transition-all duration-180 hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ds-black-300"
+            :aria-busy="submitting"
+            class="mt-2 w-full rounded-[10px] bg-gradient-to-br from-ds-orange-100 to-ds-orange-300 py-2.5 text-[14px] font-semibold text-white shadow-button-orange transition-opacity duration-180 hover:opacity-95 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ds-black-300"
           >
             {{ submitting ? 'Mendaftar…' : 'Daftar' }}
           </button>

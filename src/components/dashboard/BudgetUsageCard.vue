@@ -3,7 +3,8 @@ import { computed } from 'vue'
 
 import { AlertTriangle, PieChart } from 'lucide-vue-next'
 
-import { formatIndonesianRupiah } from '@/utils/formatIndonesianRupiah'
+import AnimatedNumber from '@/components/ui/AnimatedNumber.vue'
+import { useCountUp } from '@/composables/useCountUp'
 
 const props = defineProps({
   totalBudget: { type: Number, required: true },
@@ -15,12 +16,6 @@ const props = defineProps({
 const usagePercent = computed(() => {
   if (!props.totalBudget) return 0
   return (props.totalUsed / props.totalBudget) * 100
-})
-
-const usagePercentDisplay = computed(() => {
-  const v = usagePercent.value
-  if (!Number.isFinite(v)) return 0
-  return v < 10 ? Number(v.toFixed(1)) : Math.round(v)
 })
 
 const remaining = computed(() => props.totalBudget - props.totalUsed)
@@ -81,6 +76,11 @@ const tierConfig = {
 
 const config = computed(() => tierConfig[tier.value])
 const hasBudget = computed(() => props.totalBudget > 0)
+
+const { displayValue: animatedBarWidth } = useCountUp(
+  () => barWidth.value,
+  { duration: 800, delay: 150 },
+)
 </script>
 
 <template>
@@ -171,13 +171,20 @@ const hasBudget = computed(() => props.totalBudget > 0)
           class="mt-1 font-mono text-[26px] font-bold leading-none tracking-[-0.015em] tabular-nums text-text-primary sm:text-[30px]"
           :class="{ 'text-negative': isOver }"
         >
-          {{ formatIndonesianRupiah(totalUsed) }}
+          <AnimatedNumber
+            :value="totalUsed"
+            :duration="950"
+          />
         </p>
         <p class="mt-1 text-[12px] text-text-tertiary">
           dari
-          <span class="font-mono font-semibold tabular-nums text-text-secondary">{{
-            formatIndonesianRupiah(totalBudget)
-          }}</span>
+          <span class="font-mono font-semibold tabular-nums text-text-secondary">
+            <AnimatedNumber
+              :value="totalBudget"
+              :duration="950"
+              :delay="80"
+            />
+          </span>
         </p>
       </div>
       <p
@@ -194,7 +201,12 @@ const hasBudget = computed(() => props.totalBudget > 0)
                   : 'text-emerald-400'
         "
       >
-        {{ usagePercentDisplay }}%
+        <AnimatedNumber
+          :value="usagePercent"
+          format="percent"
+          :duration="900"
+          :delay="120"
+        />
       </p>
     </div>
 
@@ -203,7 +215,7 @@ const hasBudget = computed(() => props.totalBudget > 0)
         <div
           class="relative h-full rounded-full bg-gradient-to-r transition-[width] duration-500 ease-out"
           :class="config.barGradient"
-          :style="{ width: `${barWidth}%` }"
+          :style="{ width: `${animatedBarWidth}%` }"
         >
           <span
             class="absolute inset-0 rounded-full opacity-40 blur-sm"
@@ -227,7 +239,11 @@ const hasBudget = computed(() => props.totalBudget > 0)
           Total Budget
         </p>
         <p class="mt-1 font-mono text-[14px] font-semibold tabular-nums text-text-primary">
-          {{ formatIndonesianRupiah(totalBudget) }}
+          <AnimatedNumber
+            :value="totalBudget"
+            :duration="850"
+            :delay="200"
+          />
         </p>
       </div>
       <div
@@ -245,7 +261,12 @@ const hasBudget = computed(() => props.totalBudget > 0)
           class="mt-1 font-mono text-[14px] font-semibold tabular-nums"
           :class="remaining < 0 ? 'text-negative' : 'text-text-primary'"
         >
-          {{ remaining < 0 ? '−' : '' }}{{ formatIndonesianRupiah(Math.abs(remaining)) }}
+          <AnimatedNumber
+            :value="remaining"
+            signed
+            :duration="850"
+            :delay="260"
+          />
         </p>
       </div>
     </div>
