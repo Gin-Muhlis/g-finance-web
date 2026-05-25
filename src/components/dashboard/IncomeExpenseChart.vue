@@ -1,15 +1,14 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import VueApexCharts from 'vue3-apexcharts'
 
 import AnimatedNumber from '@/components/ui/AnimatedNumber.vue'
 import { formatIndonesianRupiah } from '@/utils/formatIndonesianRupiah'
 import { formatIdrShort } from '@/utils/moneyFormat.js'
 
 const props = defineProps({
-  /** Array<{ date: 'YYYY-MM-DD', income: number, expense: number }> */
   series: { type: Array, default: () => [] },
   periodLabel: { type: String, default: '' },
-  /** Tanpa border/card sendiri — dipakai di dalam section gabungan dashboard */
   embedded: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
 })
@@ -19,18 +18,6 @@ const rootClass = computed(() =>
     ? 'flex h-full min-w-0 flex-col'
     : 'rounded-[18px] border border-white/[0.08] bg-ds-black-300/85 p-5 shadow-card-elevated backdrop-blur-md sm:p-6',
 )
-
-const VIEW_W = 880
-const VIEW_H = 260
-const PADDING_LEFT = 50
-const PADDING_RIGHT = 24
-const PADDING_TOP = 26
-const PADDING_BOTTOM = 36
-
-const innerWidth = VIEW_W - PADDING_LEFT - PADDING_RIGHT
-const innerHeight = VIEW_H - PADDING_TOP - PADDING_BOTTOM
-
-const hoverIndex = ref(null)
 
 const totals = computed(() => {
   let income = 0
@@ -42,147 +29,142 @@ const totals = computed(() => {
   return { income, expense, net: income - expense }
 })
 
-const maxValue = computed(() => {
-  let m = 0
-  for (const p of props.series) {
-    if (p.income > m) m = p.income
-    if (p.expense > m) m = p.expense
-  }
-  if (m === 0) m = 1
-  return Math.ceil(m / 100_000) * 100_000
-})
-
-function xFor(index) {
-  if (props.series.length <= 1) {
-    return PADDING_LEFT + innerWidth / 2
-  }
-  const step = innerWidth / (props.series.length - 1)
-  return PADDING_LEFT + step * index
-}
-
-function yFor(value) {
-  const ratio = value / maxValue.value
-  return PADDING_TOP + innerHeight - ratio * innerHeight
-}
-
-function buildSmoothPath(points) {
-  if (!points.length) return ''
-  if (points.length === 1) {
-    const [p] = points
-    return `M ${p.x} ${p.y}`
-  }
-  let d = `M ${points[0].x} ${points[0].y}`
-  for (let i = 0; i < points.length - 1; i += 1) {
-    const p0 = points[i === 0 ? i : i - 1]
-    const p1 = points[i]
-    const p2 = points[i + 1]
-    const p3 = points[i + 2] || p2
-    const cp1x = p1.x + (p2.x - p0.x) / 6
-    const cp1y = p1.y + (p2.y - p0.y) / 6
-    const cp2x = p2.x - (p3.x - p1.x) / 6
-    const cp2y = p2.y - (p3.y - p1.y) / 6
-    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`
-  }
-  return d
-}
-
-const incomePoints = computed(() =>
-  props.series.map((p, i) => ({ x: xFor(i), y: yFor(p.income), value: p.income })),
-)
-const expensePoints = computed(() =>
-  props.series.map((p, i) => ({ x: xFor(i), y: yFor(p.expense), value: p.expense })),
-)
-
-const incomeLinePath = computed(() => buildSmoothPath(incomePoints.value))
-const expenseLinePath = computed(() => buildSmoothPath(expensePoints.value))
-
-const incomeAreaPath = computed(() => {
-  if (!incomePoints.value.length) return ''
-  const baseLine = PADDING_TOP + innerHeight
-  const first = incomePoints.value[0]
-  const last = incomePoints.value[incomePoints.value.length - 1]
-  return `${incomeLinePath.value} L ${last.x} ${baseLine} L ${first.x} ${baseLine} Z`
-})
-
-const expenseAreaPath = computed(() => {
-  if (!expensePoints.value.length) return ''
-  const baseLine = PADDING_TOP + innerHeight
-  const first = expensePoints.value[0]
-  const last = expensePoints.value[expensePoints.value.length - 1]
-  return `${expenseLinePath.value} L ${last.x} ${baseLine} L ${first.x} ${baseLine} Z`
-})
-
-const gridLines = computed(() => {
-  const lines = []
-  const steps = 4
-  for (let i = 0; i <= steps; i += 1) {
-    const value = (maxValue.value / steps) * i
-    const y = PADDING_TOP + innerHeight - (innerHeight * i) / steps
-    lines.push({ y, label: formatIdrShort(value) })
-  }
-  return lines
-})
-
-const xAxisLabels = computed(() => {
-  const len = props.series.length
-  if (!len) return []
-  const labelCount = Math.min(len, 7)
-  const step = (len - 1) / Math.max(1, labelCount - 1)
-  const labels = []
-  for (let i = 0; i < labelCount; i += 1) {
-    const idx = Math.round(i * step)
-    if (idx >= len) continue
-    const p = props.series[idx]
-    if (!p) continue
-    const [, m, d] = String(p.date).split('-')
-    labels.push({
-      x: xFor(idx),
-      label: `${d}/${m}`,
-    })
-  }
-  return labels
-})
-
-const hoverData = computed(() => {
-  if (hoverIndex.value == null) return null
-  const point = props.series[hoverIndex.value]
-  if (!point) return null
-  return {
-    point,
-    x: xFor(hoverIndex.value),
-    incomeY: yFor(point.income),
-    expenseY: yFor(point.expense),
-  }
-})
-
-function onMouseMove(event) {
-  const rect = event.currentTarget.getBoundingClientRect()
-  const ratio = VIEW_W / rect.width
-  const svgX = (event.clientX - rect.left) * ratio
-  const len = props.series.length
-  if (!len) return
-  if (len === 1) {
-    hoverIndex.value = 0
-    return
-  }
-  const step = innerWidth / (len - 1)
-  const idx = Math.round((svgX - PADDING_LEFT) / step)
-  hoverIndex.value = Math.max(0, Math.min(len - 1, idx))
-}
-
-function onMouseLeave() {
-  hoverIndex.value = null
-}
-
-const formattedHoverDate = computed(() => {
-  if (!hoverData.value) return ''
-  const [y, m, d] = hoverData.value.point.date.split('-')
-  return `${d}/${m}/${y}`
-})
-
 const netIsPositive = computed(() => totals.value.net >= 0)
 const hasActivity = computed(() =>
   props.series.some((point) => Number(point.income || 0) > 0 || Number(point.expense || 0) > 0),
+)
+
+const chartKey = ref(0)
+
+const chartSeries = computed(() => [
+  {
+    name: 'Income',
+    data: props.series.map((item) => item.income),
+  },
+  {
+    name: 'Expense',
+    data: props.series.map((item) => item.expense),
+  },
+])
+
+const chartOptions = computed(() => ({
+  chart: {
+    type: 'area',
+    height: 260,
+    toolbar: { show: false },
+    background: 'transparent',
+    animations: {
+      enabled: true,
+      easing: 'easeinout',
+      speed: 800,
+      animateGradually: { enabled: true, delay: 150 },
+      dynamicAnimation: { enabled: true, speed: 350 },
+    },
+    zoom: { enabled: false },
+  },
+  theme: { mode: 'dark' },
+  colors: ['#22C55E', '#FF5500'],
+  dataLabels: { enabled: false },
+  stroke: {
+    curve: 'smooth',
+    width: 2.5,
+    lineCap: 'round',
+  },
+  fill: {
+    type: 'gradient',
+    gradient: {
+      shadeIntensity: 1,
+      opacityFrom: 0.45,
+      opacityTo: 0.05,
+      stops: [0, 90, 100],
+    },
+  },
+  grid: {
+    show: true,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    strokeDashArray: 0,
+    xaxis: { lines: { show: false } },
+    yaxis: { lines: { show: true } },
+    padding: { top: 0, right: 10, bottom: 0, left: 0 },
+  },
+  xaxis: {
+    type: 'category',
+    categories: props.series.map((item) => {
+      const [, m, d] = item.date.split('-')
+      return `${d}/${m}`
+    }),
+    labels: {
+      show: true,
+      style: {
+        colors: 'rgba(255, 255, 255, 0.4)',
+        fontSize: '10px',
+        fontFamily: 'Inter, sans-serif',
+      },
+      rotate: 0,
+      trim: true,
+      hideOverlappingLabels: true,
+    },
+    axisBorder: { show: false },
+    axisTicks: { show: false },
+    tooltip: { enabled: false },
+  },
+  yaxis: {
+    labels: {
+      show: true,
+      style: {
+        colors: 'rgba(255, 255, 255, 0.35)',
+        fontSize: '10px',
+        fontFamily: 'Inter, sans-serif',
+      },
+      formatter: (value) => formatIdrShort(value),
+    },
+    axisBorder: { show: false },
+    axisTicks: { show: false },
+  },
+  tooltip: {
+    enabled: true,
+    theme: 'dark',
+    x: {
+      show: true,
+      formatter: (val, opts) => {
+        const index = opts.dataPointIndex
+        if (props.series[index]) {
+          const [y, m, d] = props.series[index].date.split('-')
+          return `${d}/${m}/${y}`
+        }
+        return val
+      },
+    },
+    y: {
+      formatter: (value) => formatIndonesianRupiah(value),
+      title: {
+        formatter: (seriesName) => seriesName,
+      },
+    },
+    style: {
+      fontSize: '12px',
+      fontFamily: 'Inter, sans-serif',
+    },
+    custom: undefined,
+  },
+  legend: { show: false },
+  markers: {
+    size: 0,
+    strokeWidth: 2,
+    strokeColors: '#0A0A0A',
+    hover: {
+      size: 5,
+      sizeOffset: 3,
+    },
+  },
+}))
+
+watch(
+  () => props.series,
+  () => {
+    chartKey.value += 1
+  },
+  { deep: true },
 )
 </script>
 
@@ -280,200 +262,20 @@ const hasActivity = computed(() =>
       v-else
       class="relative mt-2 w-full overflow-hidden"
     >
-      <svg
-        :viewBox="`0 0 ${VIEW_W} ${VIEW_H}`"
-        class="block h-[260px] w-full"
-        preserveAspectRatio="none"
-        role="img"
-        aria-label="Income vs Expense chart"
-        @mousemove="onMouseMove"
-        @mouseleave="onMouseLeave"
-      >
-        <defs>
-          <linearGradient
-            id="incomeGradient"
-            x1="0"
-            y1="0"
-            x2="0"
-            y2="1"
-          >
-            <stop
-              offset="0%"
-              stop-color="#22C55E"
-              stop-opacity="0.35"
-            />
-            <stop
-              offset="100%"
-              stop-color="#22C55E"
-              stop-opacity="0"
-            />
-          </linearGradient>
-          <linearGradient
-            id="expenseGradient"
-            x1="0"
-            y1="0"
-            x2="0"
-            y2="1"
-          >
-            <stop
-              offset="0%"
-              stop-color="#FF5500"
-              stop-opacity="0.35"
-            />
-            <stop
-              offset="100%"
-              stop-color="#FF5500"
-              stop-opacity="0"
-            />
-          </linearGradient>
-        </defs>
-
-        <g>
-          <line
-            v-for="(line, idx) in gridLines"
-            :key="idx"
-            :x1="PADDING_LEFT"
-            :x2="VIEW_W - PADDING_RIGHT"
-            :y1="line.y"
-            :y2="line.y"
-            stroke="rgba(255,255,255,0.05)"
-            stroke-width="1"
-          />
-          <text
-            v-for="(line, idx) in gridLines"
-            :key="`l-${idx}`"
-            :x="PADDING_LEFT - 8"
-            :y="line.y + 3"
-            text-anchor="end"
-            font-size="10"
-            fill="rgba(255,255,255,0.35)"
-          >
-            {{ line.label }}
-          </text>
-        </g>
-
-        <path
-          v-if="series.length && hasActivity"
-          :d="expenseAreaPath"
-          fill="url(#expenseGradient)"
-        />
-        <path
-          v-if="series.length && hasActivity"
-          :d="incomeAreaPath"
-          fill="url(#incomeGradient)"
-        />
-
-        <path
-          v-if="series.length && hasActivity"
-          :d="expenseLinePath"
-          fill="none"
-          stroke="#FF6600"
-          stroke-width="2.25"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-        <path
-          v-if="series.length && hasActivity"
-          :d="incomeLinePath"
-          fill="none"
-          stroke="#22C55E"
-          stroke-width="2.25"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-
-        <g v-if="series.length === 1 && hasActivity">
-          <circle
-            :cx="incomePoints[0].x"
-            :cy="incomePoints[0].y"
-            r="4"
-            fill="#22C55E"
-          />
-          <circle
-            :cx="expensePoints[0].x"
-            :cy="expensePoints[0].y"
-            r="4"
-            fill="#FF6600"
-          />
-        </g>
-
-        <g v-if="hoverData && hasActivity">
-          <line
-            :x1="hoverData.x"
-            :x2="hoverData.x"
-            :y1="PADDING_TOP"
-            :y2="PADDING_TOP + innerHeight"
-            stroke="rgba(255,255,255,0.12)"
-            stroke-dasharray="3,3"
-          />
-          <circle
-            :cx="hoverData.x"
-            :cy="hoverData.incomeY"
-            r="4.5"
-            fill="#22C55E"
-            stroke="#0A0A0A"
-            stroke-width="2"
-          />
-          <circle
-            :cx="hoverData.x"
-            :cy="hoverData.expenseY"
-            r="4.5"
-            fill="#FF6600"
-            stroke="#0A0A0A"
-            stroke-width="2"
-          />
-        </g>
-
-        <g>
-          <text
-            v-for="(label, idx) in xAxisLabels"
-            :key="`x-${idx}`"
-            :x="label.x"
-            :y="VIEW_H - 12"
-            text-anchor="middle"
-            font-size="10"
-            fill="rgba(255,255,255,0.35)"
-          >
-            {{ label.label }}
-          </text>
-        </g>
-      </svg>
-
-      <div
-        v-if="hoverData && hasActivity"
-        class="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-[10px] border border-white/[0.12] bg-ds-black-400/97 px-3 py-2 shadow-card-elevated backdrop-blur-md"
-        :style="{
-          left: `${(hoverData.x / VIEW_W) * 100}%`,
-          top: '8px',
-        }"
-      >
-        <p class="text-[11px] font-medium text-text-tertiary">
-          {{ formattedHoverDate }}
-        </p>
-        <div class="mt-1 flex flex-col gap-0.5 text-[12px]">
-          <span class="inline-flex items-center gap-1.5 text-positive">
-            <span class="h-1.5 w-1.5 rounded-full bg-positive" />
-            <span class="text-text-tertiary">Income</span>
-            <span class="ml-auto font-mono font-semibold tabular-nums">
-              {{ formatIndonesianRupiah(hoverData.point.income) }}
-            </span>
-          </span>
-          <span class="inline-flex items-center gap-1.5 text-ds-orange-300">
-            <span class="h-1.5 w-1.5 rounded-full bg-ds-orange-300" />
-            <span class="text-text-tertiary">Expense</span>
-            <span class="ml-auto font-mono font-semibold tabular-nums">
-              {{ formatIndonesianRupiah(hoverData.point.expense) }}
-            </span>
-          </span>
-        </div>
-      </div>
-
       <div
         v-if="!hasActivity"
-        class="absolute inset-0 flex items-center justify-center rounded-[14px] border border-dashed border-white/[0.08] bg-ds-black-400/25 px-4 text-center text-[13px] text-text-tertiary"
+        class="flex h-[260px] items-center justify-center rounded-[14px] border border-dashed border-white/[0.08] bg-ds-black-400/25 px-4 text-center text-[13px] text-text-tertiary"
       >
         Tidak ada data untuk periode ini.
       </div>
+      <VueApexCharts
+        v-else
+        :key="chartKey"
+        type="area"
+        height="260"
+        :options="chartOptions"
+        :series="chartSeries"
+      />
     </div>
   </section>
 </template>

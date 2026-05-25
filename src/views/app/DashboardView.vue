@@ -14,7 +14,7 @@ import {
   resolvePeriodRange,
   resolvePreviousPeriodRange,
   sumIncomeExpense,
-} from '@/data/dashboardDummyData';
+} from '@/utils/dashboardHelpers';
 import {
   getDashboardBaseData,
   getDashboardRecentTransactions,
@@ -24,7 +24,7 @@ import { useAuthStore } from '@/stores/auth';
 
 const auth = useAuthStore();
 
-const periodId = ref('today');
+const periodId = ref('last7');
 const customFromDate = ref('');
 const customToDate = ref('');
 const isLoading = ref(true);

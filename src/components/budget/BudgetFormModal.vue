@@ -30,7 +30,6 @@ const props = defineProps({
   year: { type: Number, required: true },
   month: { type: Number, required: true },
   summary: { type: Object, default: null },
-  /** Baris dari GET /api/budgets/items (semua halaman digabung di parent untuk form) */
   itemLines: { type: Array, default: () => [] },
   linesLoading: { type: Boolean, default: false },
   submitting: { type: Boolean, default: false },
@@ -271,11 +270,19 @@ function onSubmit() {
             </div>
 
             <div>
-              <p
-                class="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-tertiary"
-              >
-                Alokasi per kategori
-              </p>
+              <div class="mb-2 flex items-center justify-between gap-3">
+                <p
+                  class="text-[11px] font-semibold uppercase tracking-[0.06em] text-text-tertiary"
+                >
+                  Alokasi per kategori
+                </p>
+                <p
+                  class="shrink-0 font-mono text-[13px] font-semibold tabular-nums"
+                  :class="exceedsMonthlyCap ? 'text-amber-300' : 'text-text-primary'"
+                >
+                  {{ formatIdrId(sumAllocated) }}
+                </p>
+              </div>
               <div
                 v-if="linesLoading"
                 class="flex min-h-[120px] flex-col items-center justify-center gap-2 rounded-[10px] border border-border-default bg-ds-black-400/40 py-8"

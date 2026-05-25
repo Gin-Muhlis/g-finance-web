@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { CalendarRange, Check, ChevronDown } from 'lucide-vue-next'
 
-import { PERIOD_OPTIONS } from '@/data/dashboardDummyData'
+import { PERIOD_OPTIONS } from '@/utils/dashboardHelpers'
 
 const props = defineProps({
   modelValue: { type: String, default: 'today' },
