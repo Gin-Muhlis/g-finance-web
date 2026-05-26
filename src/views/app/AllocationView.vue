@@ -61,8 +61,6 @@ const deleteBucketLoading = ref(false)
 const bucketPendingDelete = ref(null)
 
 const historyFilterBucketId = ref('')
-const historyDateFrom = ref('')
-const historyDateTo = ref('')
 
 const totalBalanceNum = computed(() => {
   const s = summary.value
@@ -139,23 +137,10 @@ function bucketBarGradient(bucket) {
 }
 
 const filteredHistory = computed(() => {
-  let rows = [...historyRows.value]
-  if (historyFilterBucketId.value) {
-    rows = rows.filter(
-      (r) => r.bucket?.id === historyFilterBucketId.value,
-    )
-  }
-  if (historyDateFrom.value) {
-    rows = rows.filter(
-      (r) => String(r.transactionDate || '') >= historyDateFrom.value,
-    )
-  }
-  if (historyDateTo.value) {
-    rows = rows.filter(
-      (r) => String(r.transactionDate || '') <= historyDateTo.value,
-    )
-  }
-  return rows
+  if (!historyFilterBucketId.value) return historyRows.value
+  return historyRows.value.filter(
+    (r) => r.bucket?.id === historyFilterBucketId.value,
+  )
 })
 
 function formatHistoryDay(iso) {
@@ -632,14 +617,19 @@ loadAll()
             Riwayat alokasi
           </h2>
           <p class="mt-0.5 text-body-sm text-text-secondary">
-            Pergerakan terbaru. Filter opsional.
+            Pergerakan terbaru. Filter menurut bucket.
           </p>
-          <div
-            class="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap"
-          >
+          <div class="mt-3">
+            <label
+              for="history-bucket-filter"
+              class="sr-only"
+            >
+              Filter bucket
+            </label>
             <select
+              id="history-bucket-filter"
               v-model="historyFilterBucketId"
-              class="min-h-[40px] flex-1 rounded-input border border-border-default bg-ds-black-400/80 px-3 text-[13px] text-text-primary sm:max-w-[200px]"
+              class="min-h-[40px] w-full rounded-input border border-border-default bg-ds-black-400/80 px-3 text-[13px] text-text-primary sm:max-w-[240px]"
             >
               <option value="">
                 Semua bucket
@@ -652,16 +642,6 @@ loadAll()
                 {{ b.name }}
               </option>
             </select>
-            <input
-              v-model="historyDateFrom"
-              type="date"
-              class="min-h-[40px] rounded-input border border-border-default bg-ds-black-400/80 px-2 text-[13px] text-text-primary [color-scheme:dark]"
-            >
-            <input
-              v-model="historyDateTo"
-              type="date"
-              class="min-h-[40px] rounded-input border border-border-default bg-ds-black-400/80 px-2 text-[13px] text-text-primary [color-scheme:dark]"
-            >
           </div>
           <EmptyState
             v-if="!filteredHistory.length"
