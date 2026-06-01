@@ -79,6 +79,41 @@ function onInput(e) {
   })
 }
 
+function onBeforeInput(e) {
+  if (e.data && /\D/.test(e.data)) {
+    e.preventDefault()
+  }
+}
+
+function onPaste(e) {
+  const text = e.clipboardData?.getData('text') ?? ''
+  if (!text || /^\d+$/.test(text)) return
+
+  e.preventDefault()
+
+  const el = e.target
+  const selectionStart = el.selectionStart ?? el.value.length
+  const selectionEnd = el.selectionEnd ?? selectionStart
+  const pastedDigits = text.replace(/\D/g, '')
+  const nextValue =
+    el.value.slice(0, selectionStart) +
+    pastedDigits +
+    el.value.slice(selectionEnd)
+  const nextDigits = nextValue.replace(/\D/g, '').slice(0, MAX_DIGITS)
+
+  digits.value = nextDigits
+  emit('update:modelValue', nextDigits)
+
+  nextTick(() => {
+    const pos = caretIndexAfterFormat(
+      display.value,
+      el.value.slice(0, selectionStart).replace(/\D/g, '').length +
+        pastedDigits.length
+    )
+    el.setSelectionRange(pos, pos)
+  })
+}
+
 function onFocus(e) {
   emit('focus', e)
 }
@@ -116,7 +151,9 @@ function onBlur(e) {
       :placeholder="placeholder"
       class="min-w-0 flex-1 border-0 bg-transparent text-right font-mono tabular-nums text-text-primary outline-none placeholder:text-text-disabled"
       :class="compact ? 'px-2 py-1.5 text-[13px]' : 'px-3.5 py-2.5 text-[15px]'"
+      @beforeinput="onBeforeInput"
       @input="onInput"
+      @paste="onPaste"
       @focus="onFocus"
       @blur="onBlur"
     />

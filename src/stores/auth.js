@@ -6,7 +6,7 @@ import * as authApi from '@/services/auth'
 const REFRESH_KEY = 'gfinance_refresh_token'
 
 function getRefreshToken() {
-  return sessionStorage.getItem(REFRESH_KEY) || localStorage.getItem(REFRESH_KEY)
+  return localStorage.getItem(REFRESH_KEY) || sessionStorage.getItem(REFRESH_KEY)
 }
 
 function setRefreshToken(token, rememberMe) {
