@@ -6,29 +6,20 @@ import * as authApi from '@/services/auth'
 const REFRESH_KEY = 'gfinance_refresh_token'
 
 function getRefreshToken() {
-  return localStorage.getItem(REFRESH_KEY) || sessionStorage.getItem(REFRESH_KEY)
+  return localStorage.getItem(REFRESH_KEY)
 }
 
-function setRefreshToken(token, rememberMe) {
-  sessionStorage.removeItem(REFRESH_KEY)
-  localStorage.removeItem(REFRESH_KEY)
-  if (rememberMe) {
-    localStorage.setItem(REFRESH_KEY, token)
-  } else {
-    sessionStorage.setItem(REFRESH_KEY, token)
-  }
+function setRefreshToken(token) {
+  localStorage.setItem(REFRESH_KEY, token)
 }
 
 function persistRotatedRefreshToken(newToken) {
   if (localStorage.getItem(REFRESH_KEY) != null) {
     localStorage.setItem(REFRESH_KEY, newToken)
-  } else if (sessionStorage.getItem(REFRESH_KEY) != null) {
-    sessionStorage.setItem(REFRESH_KEY, newToken)
   }
 }
 
 function clearRefreshToken() {
-  sessionStorage.removeItem(REFRESH_KEY)
   localStorage.removeItem(REFRESH_KEY)
 }
 
@@ -43,9 +34,9 @@ export const useAuthStore = defineStore('auth', () => {
     () => !!accessToken.value && !!user.value
   )
 
-  function setSession(access, refresh, rememberMe) {
+  function setSession(access, refresh) {
     accessToken.value = access
-    setRefreshToken(refresh, rememberMe)
+    setRefreshToken(refresh)
   }
 
   function clearSession() {
@@ -124,7 +115,7 @@ export const useAuthStore = defineStore('auth', () => {
       ...(deviceInfo ? { deviceInfo } : {}),
     })
 
-    setSession(data.accessToken, data.refreshToken, rememberMe)
+    setSession(data.accessToken, data.refreshToken)
     await fetchMe()
   }
 
